@@ -4,7 +4,7 @@ var lsplugin_user = {exports: {}};
 
 
 
-const yizhou_debugging=true;
+const yizhou_debugging=false;
 
 
 
@@ -16241,12 +16241,14 @@ async function handleSpecialKeys(textarea, e) {
                         const [barPos3, replacement3] = await processReplacement(`${regexRepl}${text.substring(matchEnd)}`); // The dollar sign plugs in variables in {}
                         const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length + 1;
 
-                        if(yizhou_debugging){                        console.log(`REGEX match \n matchedtext=${text.substring(match.index, matchEnd)} \n barPos3=${barPos3} \n replacement3=${replacement3} \n cursor3=${cursor3} \n delstartoffset = ${-(text.length - match.index - 1)}`);}
+                        if(yizhou_debugging){                        console.log(`REGEX match \n text=${text} \n str_to_match_start=${text.substring(0,match.index)} \n matchedtext=${text.substring(match.index, matchEnd)} \n barPos3=${barPos3} \n replacement3=${replacement3} \n cursor3=${cursor3} \n delstartoffset = ${-(text.length - match.index - 1)}`);}
 
 
                         const blockUUID3 = getBlockUUID(e.target);
 
-                        await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3}`, -(text.length - match.index - 1), 0, cursor3);
+                        //await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3}`, -(text.length - match.index - 1), 0, cursor3);
+                        await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3}`, -(textarea.selectionStart - match.index), 0, cursor3);
+                        
                         return true;
                     }
                   }
@@ -16334,15 +16336,15 @@ async function updateText(textarea, blockUUID, text, delStartOffset = 0, delEndO
     // First, It calculates the start and end positions of the selection in the textarea, adjusted by delStartOffset and delEndOffset respectively.
 
     const collapsed = textarea.selectionStart === textarea.selectionEnd;
-    const startPos = textarea.selectionStart + delStartOffset;
+    const startPos = textarea.selectionStart + delStartOffset; // Start deletion from startPos, which is selectionStart (the cursor position) adjusted by the delStartOffset.
     const endPos = textarea.selectionEnd + delEndOffset;
 
 
-    const newPos = startPos + text.length + cursorOffset; // It calculates the new cursor position by adding the length of the new text and cursorOffset to the start position.
+    const newPos = startPos + text.length + cursorOffset; // It calculates the new cursor position by adding the length of the replacing text and cursorOffset to the start position.
     const content = textarea.value;
 
     if(yizhou_debugging){
-    console.log(`\n Updatingtext \n startPos=${startPos} \n endPos=${endPos} \n newPos=${newPos} \n content=${content} \n replacingtext=${text}`)
+    console.log(`\n Updatingtext \n string_sel_start = ${content.substring(0,textarea.selectionStart)} \n startPos=${startPos} \n string_start_pos = ${content.substring(0,startPos)} \n endPos=${endPos} \n newPos=${newPos} \n content=${content} \n replacingtext=${text}`)
     }
 
     try {
