@@ -2,6 +2,12 @@ var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof win
 
 var lsplugin_user = {exports: {}};
 
+
+
+const yizhou_debugging=true;
+
+
+
 /*! For license information please see lsplugin.user.js.LICENSE.txt */
 
 (function (module, exports) {
@@ -16091,13 +16097,15 @@ const evaluate = eval;
 const WordBoundaryR = /[^\u2E80-\u2FFF\u31C0-\u31EF\u3300-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFE30-\uFE4FA-Za-z_]/;
 const Punc = /^[!@#$%^&*\-+=_,./?;:！¥…—，。？；：]|\s$/;
 let beforeInputTextArea = {};
-function init() {
+
+function init() { // sets up a function that will be called whenever the specified event is delivered to the target.
     const appContainer = parent.document.getElementById("app-container");
     appContainer.addEventListener("keydown", keydownHandler);
     appContainer.addEventListener("beforeinput", beforeInputHandler);
     appContainer.addEventListener("input", inputHandler);
     appContainer.addEventListener("compositionend", inputHandler);
 }
+
 function cleanUp() {
     const appContainer = parent.document.getElementById("app-container");
     appContainer.removeEventListener("compositionend", inputHandler);
@@ -16105,6 +16113,7 @@ function cleanUp() {
     appContainer.removeEventListener("beforeinput", beforeInputHandler);
     appContainer.removeEventListener("keydown", keydownHandler);
 }
+
 function reloadUserRules() {
     const userRules = getUserRules();
     if (userRules.length > 0) {
@@ -16114,6 +16123,7 @@ function reloadUserRules() {
         ];
     }
 }
+
 async function reloadUserFns() {
     const fnStrings = (await logseq.DB.datascriptQuery(`[:find (pull ?b [:block/content])
       :where
@@ -16123,6 +16133,7 @@ async function reloadUserFns() {
         evaluate(fnStr);
     }
 }
+
 async function keydownHandler(e) {
     if (e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
     const textarea = e.target;
@@ -16144,6 +16155,8 @@ async function keydownHandler(e) {
         }
     }
 }
+
+
 function beforeInputHandler(e) {
     if (e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.data == null) return;
     // HACK: Workaround for Windows IME
@@ -16157,6 +16170,7 @@ function beforeInputHandler(e) {
         setSelectionRange: e.target.setSelectionRange.bind(e.target)
     };
 }
+
 async function inputHandler(e) {
     if (e.data == null || e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing) return;
     const textarea = e.target;
@@ -16169,13 +16183,17 @@ async function inputHandler(e) {
         await handleSpecialKeys(textarea, e) || await handlePairs(textarea, e);
     }
 }
+
 async function handleSpecialKeys(textarea, e) {
+
+    // The handleSpecialKeys function is an asynchronous function that processes special key inputs in a textarea. 
+    // It takes two arguments: textarea, which is the textarea element where the input is being entered, and e, which is the event object associated with the input event.
+
     const char = e.data[e.data.length - 1];
-    for (const { trigger , type , repl  } of specialKeys){
+    for (const { trigger , type , repl  } of specialKeys){ // Each element of specialkeys is a rule object with trigger, type, and repl properties.
         switch(type){
             case TRIGGER_IMMEDIATE:
                 {
-                    
                     if (char === trigger[trigger.length - 1] && matchSpecialKey(textarea.value, textarea.selectionStart, trigger, 1)) {
                         const [barPos, replacement] = await processReplacement(repl);
                         // replacement=replacement.concat("extra text");
@@ -16186,21 +16204,6 @@ async function handleSpecialKeys(textarea, e) {
                     }
                     break;
                     
-
-                    /*
-                    const text = textarea.value.substring(0, textarea.selectionStart);
-                    const match = text.match(trigger);
-                    if (match != null) {
-                        const matchEnd = match.index + match[0].length;
-                        const regexRepl = text.substring(match.index, matchEnd).replace(trigger, repl);
-                        const [barPos3, replacement3] = await processReplacement(`${regexRepl}${text.substring(matchEnd)}`);
-                        const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length + 1;
-                        replacement3=replacement3.concat("extra text");
-                        const blockUUID3 = getBlockUUID(e.target);
-                        await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3.substring(0, barPos3)}${replacement3.substring(barPos3 + 1)}`, -(text.length - match.index + 1), 0, cursor3);
-                        return true;
-                    }
-                    */
                 }
             case TRIGGER_WORD:
                 {
@@ -16237,7 +16240,12 @@ async function handleSpecialKeys(textarea, e) {
                         const regexRepl = text.substring(match.index, matchEnd).replace(trigger, repl); // Perform the regex replacement to the substring
                         const [barPos3, replacement3] = await processReplacement(`${regexRepl}${text.substring(matchEnd)}`); // The dollar sign plugs in variables in {}
                         const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length + 1;
+
+                        if(yizhou_debugging){                        console.log(`REGEX match \n matchedtext=${text.substring(match.index, matchEnd)} \n barPos3=${barPos3} \n replacement3=${replacement3} \n cursor3=${cursor3} \n delstartoffset = ${-(text.length - match.index - 1)}`);}
+
+
                         const blockUUID3 = getBlockUUID(e.target);
+
                         await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3}`, -(text.length - match.index - 1), 0, cursor3);
                         return true;
                     }
@@ -16286,6 +16294,7 @@ async function handlePairs(textarea, e) {
     }
     return false;
 }
+
 async function handleSelection(textarea, e) {
     if (e.data.length > 1) return;
     const char = e.data[0];
@@ -16314,31 +16323,56 @@ async function handleSelection(textarea, e) {
         }
     }
 }
+
+
 function getBlockUUID(el) {
     return el.id.replace(/^edit-block-[0-9]+-/, "");
 }
+
+
 async function updateText(textarea, blockUUID, text, delStartOffset = 0, delEndOffset = 0, cursorOffset = 0, numWrapChars = 1) {
+    // First, It calculates the start and end positions of the selection in the textarea, adjusted by delStartOffset and delEndOffset respectively.
+
     const collapsed = textarea.selectionStart === textarea.selectionEnd;
     const startPos = textarea.selectionStart + delStartOffset;
     const endPos = textarea.selectionEnd + delEndOffset;
-    const newPos = startPos + text.length + cursorOffset;
+
+
+    const newPos = startPos + text.length + cursorOffset; // It calculates the new cursor position by adding the length of the new text and cursorOffset to the start position.
     const content = textarea.value;
+
+    if(yizhou_debugging){
+    console.log(`\n Updatingtext \n startPos=${startPos} \n endPos=${endPos} \n newPos=${newPos} \n content=${content} \n replacingtext=${text}`)
+    }
+
     try {
         await logseq.Editor.updateBlock(blockUUID, startPos < content.length ? `${content.substring(0, startPos)}${text}` : startPos === content.length ? `${content}${text}` : `${content} ${text}`);
+
+      /* 
+        updateBlock: ((srcBlock: BlockIdentity, content: string, opts?: Partial<{
+            properties: {};
+        }>) => Promise<void>)
+
+      */
     } catch (err) {
         reject(err);
     }
+
     textarea.focus();
     if (cursorOffset != null) {
-        textarea.setSelectionRange(collapsed ? newPos : startPos + numWrapChars, collapsed ? newPos : newPos - numWrapChars);
+        textarea.setSelectionRange(collapsed ? newPos : startPos + numWrapChars, collapsed ? newPos : newPos - numWrapChars); // A general Javascript function, to select which text is selected. If not collapsed, the cursor is places at newPos (by setting the selectionRange to have zeo length.)
     }
 }
+
+
 function matchSpecialKey(text, start, trigger, skip = 0) {
     for(let i = trigger.length - 1 - skip, j = -2; i >= 0; i--, j--){
         if (text[start + j] !== trigger[i]) return false;
     }
     return true;
 }
+
+
 function findBarPos(str, calls) {
     chars: for(let i = str.length - 1; i >= 0; i--){
         if (str[i] === "@") {
@@ -16352,21 +16386,27 @@ function findBarPos(str, calls) {
     }
     return -1;
 }
+
 function getUserRules() {
     const settings = logseq.settings;
-    const ret = [];
+    const ret = []; // It initializes an empty array ret to store the parsed rules.
     for (const key of Object.keys(settings)){
-        const match = key.match(/([^0-9]+)(\d+)$/);
+        const match = key.match(/([^0-9]+)(\d+)$/); // Looks for a sequence of non-digits followed by one or more digits at the end of the key.
+
         if (!match) {
-            ret[key] = settings[key];
-            continue;
+          // If the key doesn't match the regex, it adds the corresponding setting to ret and ... 
+            ret[key] = settings[key]; 
+            continue; // ... continues to the next key.
         }
+
         const [, k, n] = match;
         const i = +n - 1;
+
         if (ret[i] == null) {
             ret[i] = {};
         }
-        if (k === "trigger") {
+
+        if (k === "trigger") { // 'trigger1' 'trigger2' ...
             const value = settings[key];
             if (value.length > 3 && value.endsWith("   ")) {
 
@@ -16393,12 +16433,14 @@ function getUserRules() {
               ret[i].type = TRIGGER_IMMEDIATE;
 
             }
+
         } else if (k === "replacement") {
             ret[i].repl = settings[key];
         }
     }
-    return ret.filter((rule)=>rule.trigger);
+    return ret.filter((rule)=>rule.trigger); // this line of code is essentially filtering out any elements (rules) in the ret array that don't have a trigger property, or where the trigger property is falsy. The resulting array is then returned by the function.
 }
+
 function getChar(c) {
     switch(c){
         case "“":
@@ -16419,6 +16461,7 @@ function getOpenPosition(c) {
             return PairOpenChars.indexOf(c);
     }
 }
+
 async function processReplacement(repl) {
     const calls = await Promise.all(Array.from(repl.matchAll(/\{\{((?:[^\{\}]|\{(?!\{)|\}(?!\}))+)\}\}/g)).map(async (m)=>{
         return {
@@ -16427,24 +16470,44 @@ async function processReplacement(repl) {
             repl: await evaluate(m[1])
         };
     }));
-    let barPos = findBarPos(repl, calls)-1; //-1 accounts for the @ sign
-    if (calls.length > 0) {
-        let i = 0;
-        const segments = [];
-        for (const call of calls){
-            segments.push(repl.substring(i, call.start));
-            segments.push(call.repl);
-            i = call.end;
-            if (call.end < barPos) {
-                barPos += call.repl.length - (call.end - call.start);
-            }
-        }
-        segments.push(repl.substring(i));
-        return [
-            barPos,
-            segments.join("")
-        ];
+
+    /*
+    `The pattern it's looking for is text enclosed in double curly braces {{...}}. 
+    The matched text (excluding the braces) is then passed to the evaluate function.`
+    */
+
+    let barPos = findBarPos(repl, calls);
+    
+    if(barPos > 0){
+    barPos = barPos-1 //-1 accounts for the @ sign
     }
+        
+    if(yizhou_debugging){}
+  
+    /* 
+    It seems I do not need any calls.
+
+
+    if (calls.length > 0) {
+      let i = 0;
+      const segments = [];
+      for (const call of calls){
+          segments.push(repl.substring(i, call.start));
+          segments.push(call.repl);
+          i = call.end;
+          if (call.end < barPos) {
+              barPos += segments.join("").length - i;
+          }
+      }
+      segments.push(repl.substring(i));
+      return [
+          barPos,
+          segments.join("")
+      ];
+    }
+    */
+  
+
     return [
         barPos,
         repl.replace('@', '')
@@ -16482,4 +16545,5 @@ async function main() {
     });
     console.log("#smart-typing loaded");
 }
+
 logseq.ready(main).catch(console.error);
