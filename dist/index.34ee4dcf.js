@@ -16427,7 +16427,7 @@ async function processReplacement(repl) {
             repl: await evaluate(m[1])
         };
     }));
-    let barPos = findBarPos(repl, calls);
+    let barPos = findBarPos(repl, calls)-1; //-1 accounts for the @ sign
     if (calls.length > 0) {
         let i = 0;
         const segments = [];
@@ -16447,7 +16447,7 @@ async function processReplacement(repl) {
     }
     return [
         barPos,
-        repl
+        repl.replace('@', '')
     ];
 }
 
