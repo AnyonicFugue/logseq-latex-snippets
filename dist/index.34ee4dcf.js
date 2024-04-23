@@ -25,6 +25,7 @@ async function setup({ defaultLocale = DEFAULT_LOCALE, builtinTranslations, }) {
         translations = builtinTranslations;
     }
 }
+
 function t(key, args) {
     const template = translations[locale$1]?.[key] ?? key;
     if (args == null)
@@ -32,28 +33,28 @@ function t(key, args) {
     return Object.entries(args).reduce((str, [name, val]) => str.replaceAll(`\${${name}}`, val), template);
 }
 
-function generateTriggerSchema() {
+function generateTriggerSchema() { // Generate input schema for trigger and replacement pairs.
     const schema = [];
     for(let i = 1; i <= 100; i++){
         schema.push({
             key: `trigger${i}`,
             type: "string",
             default: "",
-            description: t("Trigger characters. Ending in space will trigger on word boundary; ending in double spaces will trigger on space but will not type space on screen; ending in triple spaces to enable regex, triggered on space.")
+            description: t("Trigger characters. Ending in space will trigger on word boundary; ending in double spaces will trigger on space but will not type space on screen; ending in # to enable regex, triggered on space.")
         }, {
             key: `replacement${i}`,
             type: "string",
             inputAs: "textarea",
             default: "",
-            description: t("Replacement. JS expressions are in double curly brackets like `{{time()}}`. `|` means cursor position.")
+            description: t("Replacement. JS expressions are in double curly brackets like `{{time()}}`. `@` means cursor position.")
         });
     }
     return schema;
 }
 
 var zhCN = {
-	"Trigger characters. Ending in space will trigger on word boundary; ending in double spaces will trigger on space but will not type space on screen; ending in triple spaces to enable regex, triggered on space.": "触发字符。以空格结尾会以标点或空格触发；以双空格结尾会以空格触发，但不输入空格；以三个空格结尾启用正则，以空格触发。",
-	"Replacement. JS expressions are in double curly brackets like `{{time()}}`. `|` means cursor position.": "替换文字。可在双花括号里写JS表达式，例如`{{time()}}`。`|`代表光标位置。",
+	"Trigger characters. Ending in space will trigger on word boundary; ending in double spaces will trigger on space but will not type space on screen; ending in # to enable regex, triggered on space.": "触发字符。以空格结尾会以标点或空格触发；以双空格结尾会以空格触发，但不输入空格；以#结尾启用正则，以空格触发。",
+	"Replacement. JS expressions are in double curly brackets like `{{time()}}`. @` means cursor position.": "替换文字。可在双花括号里写JS表达式，例如`{{time()}}`。`@`代表光标位置。",
 	"Reload user functions": "重新加载用户函数",
 	"User defined functions reloaded.": "用户函数已重新加载。",
 	"Enable or not Chinese double-colon replacement.": "是否开启：：替换。",
@@ -62,26 +63,29 @@ var zhCN = {
 
 
 
-
-
 window.random = (from, to)=>{
     if (from > to) return from;
     return ~~(Math.random() * (to + 1 - from)) + from;
 };
+
 window.choose = (...choices)=>{
     if (choices.length <= 0) return "";
     const index = random(0, choices.length - 1);
     return choices[index];
 };
+
 window.clipboard = async ()=>{
     return await parent.navigator.clipboard.readText() ?? "";
 };
+
 window.callPlugin = (key, ...args)=>{
     // HACK: Wait some time to allow text update to run first.
     setTimeout(()=>logseq.App.invokeExternalPlugin(key, ...args), 50);
     return "";
 };
+
 window.callCommand = (key, ...args)=>{
+    // This function is used to call a command after a delay of 50 milliseconds. Here's how it works:
     // HACK: Wait some time to allow text update to run first.
     setTimeout(()=>logseq.App.invokeExternalCommand(key, ...args), 50);
     return "";
@@ -136,25 +140,32 @@ const BuiltInSpecialKeys = [
 let specialKeys = [
     ...BuiltInSpecialKeys
 ];
+
 const evaluate = eval;
 const WordBoundaryR = /[^\u2E80-\u2FFF\u31C0-\u31EF\u3300-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFE30-\uFE4FA-Za-z_]/;
 const Punc = /^[!@#$%^&*\-+=_,./?;:！¥…—，。？；：]|\s$/;
 let beforeInputTextArea = {};
 
-function init() { // sets up a function that will be called whenever the specified event is delivered to the target.
+function init() { // sets up a function that will be called whenever the specified event happens (e.g. keydown, beforeinput)
     const appContainer = parent.document.getElementById("app-container");
-    appContainer.addEventListener("keydown", keydownHandler);
-    appContainer.addEventListener("beforeinput", beforeInputHandler);
-    appContainer.addEventListener("input", inputHandler);
-    appContainer.addEventListener("compositionend", inputHandler);
+
+    // appContainer.addEventListener("keydown", keydownHandler); // The keydown event is fired for all keys, regardless of whether they produce a character value.
+    // appContainer.addEventListener("beforeinput", beforeInputHandler); // The DOM beforeinput event fires when the value of an <input> or <textarea> element is about to be modified. But in contrast to the input event, it does not fire on the <select> element.
+
+    // Not every user modification results in beforeinput firing. Also the event may fire but be non-cancelable. This may happen when the modification is done by autocomplete, by accepting a correction from a spell checker, by password manager autofill, by IME, or in other ways. The details vary by browser and OS. To override the edit behavior in all situations, the code needs to handle the input event and possibly revert any modifications that were not handled by the beforeinput handler.
+
+    appContainer.addEventListener("input", inputHandler); // The input event fires when the value of an <input>, <select>, or <textarea> element has been changed as a direct result of a user action (such as typing in a textbox or checking a checkbox).
+    // appContainer.addEventListener("compositionend", inputHandler); // represents events that occur due to the user indirectly entering text.
 }
 
 function cleanUp() {
     const appContainer = parent.document.getElementById("app-container");
-    appContainer.removeEventListener("compositionend", inputHandler);
+
+    // appContainer.removeEventListener("compositionend", inputHandler);
+
     appContainer.removeEventListener("input", inputHandler);
-    appContainer.removeEventListener("beforeinput", beforeInputHandler);
-    appContainer.removeEventListener("keydown", keydownHandler);
+    // appContainer.removeEventListener("beforeinput", beforeInputHandler);
+    // appContainer.removeEventListener("keydown", keydownHandler);
 }
 
 function reloadUserRules() {
