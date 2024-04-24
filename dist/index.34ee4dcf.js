@@ -178,6 +178,7 @@ function reloadUserRules() {
     }
 }
 
+/*
 async function reloadUserFns() {
     const fnStrings = (await logseq.DB.datascriptQuery(`[:find (pull ?b [:block/content])
       :where
@@ -187,55 +188,27 @@ async function reloadUserFns() {
         evaluate(fnStr);
     }
 }
-
-async function keydownHandler(e) {
-    if (e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing || e.repeat || e.metaKey || e.ctrlKey || e.altKey) return;
-    const textarea = e.target;
-    // Prevent Logseq's default '(', '（', '[' and '【' behavior for selections.
-    if ((e.shiftKey && e.code === "Digit9" || !e.shiftKey && e.code === "BracketLeft") && textarea.selectionStart !== textarea.selectionEnd) {
-        e.stopPropagation();
-    }
-    if (textarea.selectionStart === textarea.selectionEnd) {
-        if (e.key === "Backspace") {
-            // Pair deletion behavior.
-            const prevChar = textarea.value[textarea.selectionStart - 1];
-            const nextChar = textarea.value[textarea.selectionStart];
-            const openIndex = PairOpenChars.indexOf(prevChar);
-            if (openIndex > -1 && nextChar === PairCloseChars[openIndex]) {
-                e.preventDefault();
-                const blockUUID = textarea.closest("[blockid]").getAttribute("blockid");
-                await updateText(textarea, blockUUID, "", -1, 1, 0);
-            }
-        }
-    }
-}
-
-
-function beforeInputHandler(e) {
-    if (e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.data == null) return;
-    // HACK: Workaround for Windows IME
-    if (e.data.length === 1 && e.data === beforeInputTextArea.data) return;
-    beforeInputTextArea = {
-        data: e.data,
-        value: e.target.value,
-        selectionStart: e.target.selectionStart,
-        selectionEnd: e.target.selectionEnd,
-        focus: e.target.focus.bind(e.target),
-        setSelectionRange: e.target.setSelectionRange.bind(e.target)
-    };
-}
+*/
 
 async function inputHandler(e) {
-    if (e.data == null || e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing) return;
+    if (e.data == null || e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing) return; //  If the event doesn't meet these conditions, or if e.data is null, or if the input is being composed (i.e., the user is in the middle of using an Input Method Editor to enter complex characters), the function returns immediately.
+
     const textarea = e.target;
+
+    /*
     const before = beforeInputTextArea;
-    // reset every beforeinput -> input/compositionend cycle.
     beforeInputTextArea = {};
+    */ // The beforeInputTextArea object is reset after every beforeinput event. But no need to do so since I've disabled beforeinput event.
+
+    /*
     if (before.selectionStart !== before.selectionEnd && e.data.length === 1 && WrapIdenChars.includes(e.data) && before.value.substring(before.selectionStart, before.selectionEnd) !== e.data) {
-        await handleSelection(before, e);
+        await handleSelection(before, e);  // Check if there was a selection in the textarea before the input event, if the input data is a single character that is included in WrapIdenChars, and if the selected text before the input event is not the same as the input data. If all these conditions are met, it calls handleSelection(before, e).
     } else {
         await handleSpecialKeys(textarea, e) || await handlePairs(textarea, e);
     }
+    */
+
+    await handleSpecialKeys(textarea, e) || await handlePairs(textarea, e);
 }
 
 async function handleSpecialKeys(textarea, e) {
@@ -257,7 +230,6 @@ async function handleSpecialKeys(textarea, e) {
                         return true;
                     }
                     break;
-                    
                 }
             case TRIGGER_WORD:
                 {
@@ -312,12 +284,19 @@ async function handleSpecialKeys(textarea, e) {
     }
     return false;
 }
+
 async function handlePairs(textarea, e) {
-    if (e.data.length > 1) return false;
+    if (e.data.length > 1) return false;  // If the input data (e.data) is more than one character, it returns false immediately.
+
+    // Get the character from the input data and its position in PairOpenChars (if it exists).
     const char = getChar(e.data[0]);
     const i = getOpenPosition(char);
+
+    // Get the character before and after the cursor in the textarea.
     const nextChar = textarea.value[textarea.selectionStart];
     const prevChar = textarea.value[textarea.selectionStart - 2];
+
+
     if (char === " " && prevChar === "（" && nextChar === "）") {
         const blockUUID = getBlockUUID(e.target);
         await updateText(textarea, blockUUID, "()", -2, 1, -1);
@@ -326,7 +305,7 @@ async function handlePairs(textarea, e) {
         const blockUUID1 = getBlockUUID(e.target);
         await updateText(textarea, blockUUID1, "", -1, 0, 1);
         return true;
-    } else if (i > -1) {
+    } else if (i > -1) { // If the input character is included in PairOpenChars, check several more conditions to determine how to handle the input. 
         if (char === "（" && prevChar === char && nextChar === PairCloseChars[i]) {
             const blockUUID2 = getBlockUUID(e.target);
             await updateText(textarea, blockUUID2, `((`, -2, 1, 0);
@@ -377,6 +356,28 @@ async function handleSelection(textarea, e) {
             const text3 = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
             await updateText(textarea, blockUUID3, `${WrapOpenChars[i]}${text3}${WrapCloseChars[i]}`);
         }
+    }
+}
+
+
+function getChar(c) {
+    switch(c){
+        case "“":
+            return "”";
+        case "‘":
+            return "’";
+        default:
+            return c;
+    }
+}
+function getOpenPosition(c) {
+    switch(c){
+        case "”":
+            return PairOpenChars.indexOf("“");
+        case "’":
+            return PairOpenChars.indexOf("‘");
+        default:
+            return PairOpenChars.indexOf(c);
     }
 }
 
@@ -497,26 +498,6 @@ function getUserRules() {
     return ret.filter((rule)=>rule.trigger); // this line of code is essentially filtering out any elements (rules) in the ret array that don't have a trigger property, or where the trigger property is falsy. The resulting array is then returned by the function.
 }
 
-function getChar(c) {
-    switch(c){
-        case "“":
-            return "”";
-        case "‘":
-            return "’";
-        default:
-            return c;
-    }
-}
-function getOpenPosition(c) {
-    switch(c){
-        case "”":
-            return PairOpenChars.indexOf("“");
-        case "’":
-            return PairOpenChars.indexOf("‘");
-        default:
-            return PairOpenChars.indexOf(c);
-    }
-}
 
 async function processReplacement(repl) {
     const calls = await Promise.all(Array.from(repl.matchAll(/\{\{((?:[^\{\}]|\{(?!\{)|\}(?!\}))+)\}\}/g)).map(async (m)=>{
@@ -576,7 +557,7 @@ async function main() {
             "zh-CN": zhCN
         }
     });
-    await reloadUserFns();
+    // await reloadUserFns();
     init();
     logseq.useSettingsSchema([
         {
@@ -592,7 +573,7 @@ async function main() {
         key: "reload-user-fns",
         label: t("Reload user functions")
     }, async ()=>{
-        await reloadUserFns();
+        // await reloadUserFns();
         await logseq.UI.showMsg(t("User defined functions reloaded."));
     });
     logseq.beforeunload(()=>{
