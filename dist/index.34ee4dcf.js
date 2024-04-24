@@ -4,7 +4,7 @@ var lsplugin_user = {exports: {}};
 
 
 
-const yizhou_debugging=true;
+const is_debugging=true;
 
 
 
@@ -85,7 +85,7 @@ window.callPlugin = (key, ...args)=>{
 };
 
 window.callCommand = (key, ...args)=>{
-    // This function is used to call a command after a delay of 50 milliseconds. Here's how it works:
+    // This function is used to call a command after a delay of 50 milliseconds.
     // HACK: Wait some time to allow text update to run first.
     setTimeout(()=>logseq.App.invokeExternalCommand(key, ...args), 50);
     return "";
@@ -97,49 +97,9 @@ const TRIGGER_SPACE = 3;
 const TRIGGER_REGEX = 4;
 const PairOpenChars = '{"（「『《〈“‘«';
 const PairCloseChars = '}"）」』》〉”’»';
-const WrapIdenChars = "$\"'([¥￥（【「《·“‘”’～«『";
-const WrapOpenChars = "$\"'([$$（【「《`“‘“‘~«";
-const WrapCloseChars = "$\"')]$$）】」》`”’”’~»";
-const BuiltInSpecialKeys = [
-    {
-        trigger: "：：",
-        type: TRIGGER_IMMEDIATE,
-        repl: "::"
-    },
-    {
-        trigger: "···",
-        type: TRIGGER_IMMEDIATE,
-        repl: "```|```"
-    },
-    {
-        trigger: "～～",
-        type: TRIGGER_IMMEDIATE,
-        repl: "~~|~~"
-    },
-    {
-        trigger: "〉》",
-        type: TRIGGER_IMMEDIATE,
-        repl: ">"
-    },
-    {
-        trigger: "》〉",
-        type: TRIGGER_IMMEDIATE,
-        repl: ">"
-    },
-    {
-        trigger: "》》",
-        type: TRIGGER_IMMEDIATE,
-        repl: ">"
-    },
-    {
-        trigger: "【",
-        type: TRIGGER_SPACE,
-        repl: "[|]"
-    }
-];
-let specialKeys = [
-    ...BuiltInSpecialKeys
-];
+
+
+let specialKeys = [];
 
 const evaluate = eval;
 const WordBoundaryR = /[^\u2E80-\u2FFF\u31C0-\u31EF\u3300-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFE30-\uFE4FA-Za-z_]/;
@@ -172,7 +132,7 @@ function reloadUserRules() {
     const userRules = getUserRules();
     if (userRules.length > 0) {
         specialKeys = [
-            ...logseq.settings?.enableColon ? BuiltInSpecialKeys : BuiltInSpecialKeys.filter((rule)=>rule.trigger !== "：："),
+            // ...logseq.settings?.enableColon ? BuiltInSpecialKeys : BuiltInSpecialKeys.filter((rule)=>rule.trigger !== "：："),
             ...userRules
         ];
     }
@@ -194,19 +154,6 @@ async function inputHandler(e) {
     if (e.data == null || e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing) return; //  If the event doesn't meet these conditions, or if e.data is null, or if the input is being composed (i.e., the user is in the middle of using an Input Method Editor to enter complex characters), the function returns immediately.
 
     const textarea = e.target;
-
-    /*
-    const before = beforeInputTextArea;
-    beforeInputTextArea = {};
-    */ // The beforeInputTextArea object is reset after every beforeinput event. But no need to do so since I've disabled beforeinput event.
-
-    /*
-    if (before.selectionStart !== before.selectionEnd && e.data.length === 1 && WrapIdenChars.includes(e.data) && before.value.substring(before.selectionStart, before.selectionEnd) !== e.data) {
-        await handleSelection(before, e);  // Check if there was a selection in the textarea before the input event, if the input data is a single character that is included in WrapIdenChars, and if the selected text before the input event is not the same as the input data. If all these conditions are met, it calls handleSelection(before, e).
-    } else {
-        await handleSpecialKeys(textarea, e) || await handlePairs(textarea, e);
-    }
-    */
 
     await handleSpecialKeys(textarea, e) || await handlePairs(textarea, e);
 }
@@ -260,14 +207,18 @@ async function handleSpecialKeys(textarea, e) {
 
                     const text = textarea.value.substring(0, textarea.selectionStart - 1).concat(textarea.value.substring(textarea.selectionStart));
 
+                    
                     const match = text.match(trigger);
+
                     if (match != null) {
                         const matchEnd = match.index + match[0].length; // index is the character where the first match starts. matchEnd is the end of the matched string.
                         const regexRepl = text.substring(match.index, matchEnd).replace(trigger, repl); // Perform the regex replacement to the substring
                         const [barPos3, replacement3] = await processReplacement(`${regexRepl}${text.substring(matchEnd)}`); // The dollar sign plugs in variables in {}
                         const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length + 1;
 
-                        if(yizhou_debugging){                        console.log(`REGEX match \n text=${text} \n str_to_match_start=${text.substring(0,match.index)} \n matchedtext=${text.substring(match.index, matchEnd)} \n barPos3=${barPos3} \n replacement3=${replacement3} \n cursor3=${cursor3} \n delstartoffset = ${-(text.length - match.index - 1)}`);}
+                        if(is_debugging){
+                            console.log(`REGEX match \n text=${text} \n str_to_match_start=${text.substring(0,match.index)} \n matchedtext=${text.substring(match.index, matchEnd)} \n barPos3=${barPos3} \n replacement3=${replacement3} \n cursor3=${cursor3} \n delstartoffset = ${-(text.length - match.index - 1)}`);
+                        }
 
 
                         const blockUUID3 = getBlockUUID(e.target);
@@ -330,35 +281,6 @@ async function handlePairs(textarea, e) {
     return false;
 }
 
-async function handleSelection(textarea, e) {
-    if (e.data.length > 1) return;
-    const char = e.data[0];
-    let i = WrapIdenChars.indexOf(char);
-    if (i > -1) {
-        const prevChar = textarea.value[textarea.selectionStart - 1];
-        const nextChar = textarea.value[textarea.selectionEnd];
-        if (prevChar === "「" && nextChar === "」" && (char === "「" || char === "『")) {
-            const blockUUID = getBlockUUID(e.target);
-            const text = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
-            await updateText(textarea, blockUUID, `{{${text}}}`, -1, 1, 0, 2);
-        } else if (prevChar === char && nextChar === WrapCloseChars[i]) {
-            if (char === "（" || char === "(") {
-                const blockUUID1 = getBlockUUID(e.target);
-                const text1 = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
-                await updateText(textarea, blockUUID1, `((${text1}))`, -1, 1, 0, 2);
-            } else if (char === "【" || char === "[") {
-                const blockUUID2 = getBlockUUID(e.target);
-                const text2 = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
-                await updateText(textarea, blockUUID2, `[[${text2}]]`, -1, 1, 0, 2);
-            }
-        } else {
-            const blockUUID3 = getBlockUUID(e.target);
-            const text3 = textarea.value.substring(textarea.selectionStart, textarea.selectionEnd);
-            await updateText(textarea, blockUUID3, `${WrapOpenChars[i]}${text3}${WrapCloseChars[i]}`);
-        }
-    }
-}
-
 
 function getChar(c) {
     switch(c){
@@ -398,7 +320,7 @@ async function updateText(textarea, blockUUID, text, delStartOffset = 0, delEndO
     const newPos = startPos + text.length + cursorOffset; // It calculates the new cursor position by adding the length of the replacing text and cursorOffset to the start position.
     const content = textarea.value;
 
-    if(yizhou_debugging){
+    if(is_debugging){
     console.log(`\n Updatingtext \n string_sel_start = ${content.substring(0,textarea.selectionStart)} \n startPos=${startPos} \n string_start_pos = ${content.substring(0,startPos)} \n endPos=${endPos} \n newPos=${newPos} \n content=${content} \n replacingtext=${text}`)
     }
 
@@ -448,16 +370,19 @@ function getUserRules() {
     const settings = logseq.settings;
     const ret = []; // It initializes an empty array ret to store the parsed rules.
     for (const key of Object.keys(settings)){
-        const match = key.match(/([^0-9]+)(\d+)$/); // Looks for a sequence of non-digits followed by one or more digits at the end of the key.
+        const match = key.match(/([^0-9]+)(\d+)/); // Looks for a sequence of non-digits followed by one or more digits at the end of the key.
 
         if (!match) {
           // If the key doesn't match the regex, it adds the corresponding setting to ret and ... 
-            ret[key] = settings[key]; 
+            ret[key] = settings[key];
+
             continue; // ... continues to the next key.
         }
 
         const [, k, n] = match;
         const i = +n - 1;
+
+
 
         if (ret[i] == null) {
             ret[i] = {};
@@ -476,9 +401,14 @@ function getUserRules() {
             } else if (value.length > 1 && value.endsWith("\#")) {
 
             let str = value.substring(0, value.length - 1);
-            if (str[str.length - 1] !== "$" || str[str.length - 2] === "\\") {
-                str = `${str}$`;
+ 
+            /*
+            if(is_debugging){
+                console.log(`\n REGEX trigger string after escaping=${str}`)
             }
+            */
+
+
             ret[i].trigger = new RegExp(str);
             ret[i].type = TRIGGER_REGEX;
 
@@ -519,7 +449,7 @@ async function processReplacement(repl) {
     barPos = barPos-1 //-1 accounts for the @ sign
     }
         
-    if(yizhou_debugging){}
+    if(is_debugging){}
   
     /* 
     It seems I do not need any calls.
@@ -557,8 +487,9 @@ async function main() {
             "zh-CN": zhCN
         }
     });
-    // await reloadUserFns();
+    
     init();
+
     logseq.useSettingsSchema([
         {
             key: "enableColon",
@@ -568,14 +499,9 @@ async function main() {
         },
         ...generateTriggerSchema()
     ]);
+
     const settingsOff = logseq.onSettingsChanged(reloadUserRules);
-    logseq.App.registerCommandPalette({
-        key: "reload-user-fns",
-        label: t("Reload user functions")
-    }, async ()=>{
-        // await reloadUserFns();
-        await logseq.UI.showMsg(t("User defined functions reloaded."));
-    });
+
     logseq.beforeunload(()=>{
         settingsOff();
         cleanUp();
