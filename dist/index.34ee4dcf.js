@@ -254,24 +254,34 @@ async function handlePairs(textarea, e) {
         await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length+1);
         return true;
     }
+
+    if (char === "(") {
+        const blockUUID = getBlockUUID(e.target);
+        const replacement =  "()".concat(textarea.value.substring(textarea.selectionStart))
+        await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length+1);
+        return true;
+    }
     /*
     if (char === " " && prevChar === "（" && nextChar === "）") {
         const blockUUID = getBlockUUID(e.target);
         await updateText(textarea, blockUUID, "()", -2, 1, -1);
         return true;
     
-    } else */
+    } else 
     if (char === nextChar && PairCloseChars.includes(char)) {
         const blockUUID1 = getBlockUUID(e.target);
         await updateText(textarea, blockUUID1, "", -1, 0, 1);
         return true;
-    } else if (i > -1) { // If the input character is included in PairOpenChars, check several more conditions to determine how to handle the input. 
+    } 
+    
+    else if (i > -1) { // If the input character is included in PairOpenChars, check several more conditions to determine how to handle the input. 
         if (nextChar == null || PairCloseChars.includes(nextChar) || Punc.test(nextChar)) {
             const blockUUID5 = getBlockUUID(e.target);
             await updateText(textarea, blockUUID5, `${PairOpenChars[i]}${PairCloseChars[i]}`, -1, 0, -1);
             return true;
         }
     }
+    */
     return false;
 }
 
