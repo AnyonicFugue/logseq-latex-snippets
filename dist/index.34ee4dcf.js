@@ -95,8 +95,8 @@ const TRIGGER_IMMEDIATE = 1;
 const TRIGGER_WORD = 2;
 const TRIGGER_SPACE = 3;
 const TRIGGER_REGEX = 4;
-const PairOpenChars = '{"（「『《〈“‘«';
-const PairCloseChars = '}"）」』》〉”’»';
+const PairOpenChars = '{([';
+const PairCloseChars = '})]';
 
 
 let specialKeys = [];
@@ -248,30 +248,24 @@ async function handlePairs(textarea, e) {
     const prevChar = textarea.value[textarea.selectionStart - 2];
 
 
+    if (char === "$") {
+        const blockUUID = getBlockUUID(e.target);
+        const replacement =  "$$".concat(textarea.value.substring(textarea.selectionStart))
+        await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length+1);
+        return true;
+    }
+    /*
     if (char === " " && prevChar === "（" && nextChar === "）") {
         const blockUUID = getBlockUUID(e.target);
         await updateText(textarea, blockUUID, "()", -2, 1, -1);
         return true;
-    } else if (char === nextChar && PairCloseChars.includes(char)) {
+    
+    } else */
+    if (char === nextChar && PairCloseChars.includes(char)) {
         const blockUUID1 = getBlockUUID(e.target);
         await updateText(textarea, blockUUID1, "", -1, 0, 1);
         return true;
     } else if (i > -1) { // If the input character is included in PairOpenChars, check several more conditions to determine how to handle the input. 
-        if (char === "（" && prevChar === char && nextChar === PairCloseChars[i]) {
-            const blockUUID2 = getBlockUUID(e.target);
-            await updateText(textarea, blockUUID2, `((`, -2, 1, 0);
-            return true;
-        }
-        if ((char === "〈" || char === "《") && (prevChar === "《" || prevChar === "〈") && (nextChar === "》" || nextChar === "〉")) {
-            const blockUUID3 = getBlockUUID(e.target);
-            await updateText(textarea, blockUUID3, `<`, -2, 1, 0);
-            return true;
-        }
-        if ((char === "『" || char === "「") && prevChar === "「" && nextChar === "」") {
-            const blockUUID4 = getBlockUUID(e.target);
-            await updateText(textarea, blockUUID4, `{{}}`, -2, 1, -2);
-            return true;
-        }
         if (nextChar == null || PairCloseChars.includes(nextChar) || Punc.test(nextChar)) {
             const blockUUID5 = getBlockUUID(e.target);
             await updateText(textarea, blockUUID5, `${PairOpenChars[i]}${PairCloseChars[i]}`, -1, 0, -1);
@@ -321,7 +315,7 @@ async function updateText(textarea, blockUUID, text, delStartOffset = 0, delEndO
     const content = textarea.value;
 
     if(is_debugging){
-    console.log(`\n Updatingtext \n string_sel_start = ${content.substring(0,textarea.selectionStart)} \n startPos=${startPos} \n string_start_pos = ${content.substring(0,startPos)} \n endPos=${endPos} \n newPos=${newPos} \n content=${content} \n replacingtext=${text}`)
+    console.log(`\n Updatingtext \n string_sel_start = ${content.substring(0,textarea.selectionStart)} \n text=${text} \n startPos=${startPos} \n string_start_pos = ${content.substring(0,startPos)} \n endPos=${endPos} \n newPos=${newPos} \n cursoroffset=${cursorOffset}`)
     }
 
     try {
