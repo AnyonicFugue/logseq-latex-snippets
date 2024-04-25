@@ -173,6 +173,10 @@ async function handleSpecialKeys(textarea, e) {
         }
     }
 
+    if(!(isInLatex(text_befor_cursor))) {
+        return false; // Return early if the cursor is not in a Latex block.
+    }
+
 
     for (const { trigger, type, repl } of specialKeys) { // Each element of specialkeys is a rule object with trigger, type, and repl properties.
         switch (type) {
@@ -188,37 +192,12 @@ async function handleSpecialKeys(textarea, e) {
                     }
                     break;
                 }
-            case TRIGGER_WORD:
-                {
-                    if (WordBoundaryR.test(char) && matchSpecialKey(textarea.value, textarea.selectionStart, trigger)) {
-                        const [barPos1, replacement1] = await processReplacement(repl);
-                        const cursor1 = barPos1 < 0 ? 0 : barPos1 - replacement1.length;
-                        const blockUUID1 = getBlockUUID(e.target);
-                        await updateText(textarea, blockUUID1, barPos1 < 0 ? `${replacement1}${char}` : `${replacement1.substring(0, barPos1)}${replacement1.substring(barPos1 + 1)}${char}`, -(trigger.length + 1), 0, cursor1);
-                        return true;
-                    }
-                    break;
-                }
-            case TRIGGER_SPACE:
-                {
-                    if (char === " " && matchSpecialKey(textarea.value, textarea.selectionStart, trigger)) {
-                        const [barPos2, replacement2] = await processReplacement(repl);
-                        const cursor2 = barPos2 < 0 ? 0 : barPos2 - replacement2.length + 1;
-                        const blockUUID2 = getBlockUUID(e.target);
-                        await updateText(textarea, blockUUID2, barPos2 < 0 ? `${replacement2}` : `${replacement2.substring(0, barPos2)}${replacement2.substring(barPos2 + 1)}`, -(trigger.length + 1), 0, cursor2);
-                        return true;
-                    }
-                    break;
-                }
             case TRIGGER_REGEX:
                 {
                     if (char === " ") {
                         // const text = textarea.value
 
-                        const text = textarea.value.substring(0, textarea.selectionStart - 1).concat(textarea.value.substring(textarea.selectionStart)); 
-                        
-                        // Since we've already decided whether we are in Latex, we only need those before the cursor
-
+                        const text = textarea.value.substring(0, textarea.selectionStart - 1); // Since we've already decided whether we are in Latex, we only need those before the cursor                      
 
                         const match = text.match(trigger);
 
@@ -226,7 +205,7 @@ async function handleSpecialKeys(textarea, e) {
                             const matchEnd = match.index + match[0].length; // index is the character where the first match starts. matchEnd is the end of the matched string.
                             const regexRepl = text.substring(match.index, matchEnd).replace(trigger, repl); // Perform the regex replacement to the substring
                             const [barPos3, replacement3] = await processReplacement(`${regexRepl}${text.substring(matchEnd)}`); // The dollar sign plugs in variables in {}
-                            const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length + 1;
+                            const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length - (textarea.value.length - textarea.selectionStart) + 1;
 
                             if (is_debugging) {
                                 console.log(`REGEX match \n text=${text} \n str_to_match_start=${text.substring(0, match.index)} \n matchedtext=${text.substring(match.index, matchEnd)} \n barPos3=${barPos3} \n replacement3=${replacement3} \n cursor3=${cursor3} \n delstartoffset = ${-(text.length - match.index - 1)}`);
@@ -236,7 +215,7 @@ async function handleSpecialKeys(textarea, e) {
                             const blockUUID3 = getBlockUUID(e.target);
 
                             //await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3}`, -(text.length - match.index - 1), 0, cursor3);
-                            await updateText(textarea, blockUUID3, `${replacement3}`, -(textarea.selectionStart - match.index), 0, cursor3);
+                            await updateText(textarea, blockUUID3, `${replacement3}${textarea.value.substring(textarea.selectionStart)}`, -(text.length - match.index + 1), 0, cursor3);
 
                             return true;
                         }
@@ -424,8 +403,7 @@ function getUserRules() {
                 }
                 */
 
-
-                ret[i].trigger = new RegExp(str);
+                ret[i].trigger = new RegExp(`${str}$`); // Only match the end of the string.
                 ret[i].type = TRIGGER_REGEX;
 
             } else {
