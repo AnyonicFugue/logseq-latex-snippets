@@ -1,81 +1,112 @@
 {
     "regex_rules": [
       {
-        "trigger": "(?<!\\\\math)cal(.+)",
+        "trigger": "(?<![a-zA-Z])cal(.+)",
         "replacement": "\\mathcal{$1}@"
       },
       {
-        "trigger": "(?<!\\\\math)scr(.+)",
+        "trigger": "(?<![a-zA-Z])scr(.+)",
         "replacement": "\\mathscr{$1}@"
       },
       {
-        "trigger": "(?<!\\\\math)frak(.+)",
+        "trigger": "(?<![a-zA-Z])frak(.+)",
         "replacement": "\\mathfrak{$1}@"
       },
       {
-        "trigger": "(?<!\\\\math)bb(.+)",
+        "trigger": "(?<![a-zA-Z])bb(.+)",
         "replacement": "\\mathbb{$1}@"
       },
       {
-        "trigger": "(?<!\\\\math)bf(.+)",
+        "trigger": "(?<![a-zA-Z])bf(.+)",
         "replacement": "\\mathbf{$1}@"
       },
       {
-        "trigger": "(?<!\\\\math)rm(.+)",
+        "trigger": "(?<![a-zA-Z])rm(.+)",
         "replacement": "\\mathrm{$1}@"
       },
+
+
+
       {
-        "trigger": "(?<!{)(s|S)et",
+        "trigger": "(?<![{\\\\a-zA-Z])(s|S)et",
         "replacement": "\\mathrm{Set}@"
       },
       {
-        "trigger": "(?<!{)(g|G)rp",
+        "trigger": "(?<![{\\\\a-zA-Z])(g|G)rp",
         "replacement": "\\mathrm{Grp}@"
       },
       {
-        "trigger": "(?<!{)(a|A)b",
+        "trigger": "(?<![{\\\\a-zA-Z])(a|A)b",
         "replacement": "\\mathrm{Ab}@"
       },
       {
-        "trigger": "(?<!{)(v|V)ec",
+        "trigger": "(?<![{\\\\a-zA-Z])s(v|V)ec",
+        "replacement": "\\mathrm{sVec}@"
+      },
+      {
+        "trigger": "(?<![{\\\\a-zA-Z])(v|V)ec",
         "replacement": "\\mathrm{Vec}@"
       },
       {
-        "trigger": "(?<!{)(f|F)un",
+        "trigger": "(?<![{\\\\a-zA-Z])(f|F)un",
         "replacement": "\\operatorname{Fun}@"
       },
       {
-        "trigger": "(?<!{)(t|T)op",
+        "trigger": "(?<![{\\\\a-zA-Z])(t|T)op",
         "replacement": "\\mathrm{Top}@"
       },
+
+
+
       {
-        "trigger": "(?<!\\\\)hat(.+)",
+        "trigger": "(?<![{\\\\a-zA-Z])op",
+        "replacement": "\\operatorname{@}"
+      },
+      {
+        "trigger": "(?<![{\\\\a-zA-Z])(hom|Hom)",
+        "replacement": "\\operatorname{Hom}(@)"
+      },
+      {
+        "trigger": "(?<![{\\\\a-zA-Z])(tr|Tr)(?!})",
+        "replacement": "\\operatorname{Tr}@"
+      },
+
+
+
+      {
+        "trigger": "(?<![\\\\a-zA-Z])hat(.+)",
         "replacement": "\\hat{$1}@"
       },
       {
-        "trigger": "(?<!\\\\)tilde(.+)",
+        "trigger": "(?<![\\\\a-zA-Z])tilde(.+)",
         "replacement": "\\tilde{$1}@"
       },
       {
-        "trigger": "(?<!\\\\)bar(.+)",
+        "trigger": "(?<![\\\\a-zA-Z])bar(.+)",
         "replacement": "\\bar{$1}@"
       },
+
+
+
       {
-        "trigger": "(?<!\\\\)sum",
+        "trigger": "(?<![\\\\a-zA-Z])sum",
         "replacement": "\\sum_{}^{}@"
       },
       {
-        "trigger": "(?<!\\\\)prod",
+        "trigger": "(?<![\\\\a-zA-Z])prod",
         "replacement": "\\prod_{}^{}@"
       },
       {
-        "trigger": "(?<!\\\\)integrate",
+        "trigger": "(?<![\\\\a-zA-Z])integrate",
         "replacement": "\\integrate_{}^{}@"
       },
       {
-        "trigger": "(?<!\\\\)lim",
+        "trigger": "(?<![\\\\a-zA-Z])lim",
         "replacement": "\\lim_{n \\to \\infty}@"
       },
+
+
+
       {
         "trigger": "Z([0-9]|n|p)",
         "replacement": "Z_{$1}@"

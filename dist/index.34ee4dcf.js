@@ -459,6 +459,14 @@ async function main() {
 
     const settingsOff = logseq.onSettingsChanged(reloadUserRules);
     
+
+    logseq.App.registerCommandPalette({
+        key: "reload-latex-snippets",
+        label: t("Reload snippets from the snippets.json")
+    }, async ()=>{
+        await reloadUserRules();
+        await logseq.UI.showMsg(t("Latex snippets reloaded."));
+    });
     
     logseq.beforeunload(() => {
         settingsOff();
