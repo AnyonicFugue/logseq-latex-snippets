@@ -1,3 +1,5 @@
+// const fs = require('fs');
+
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 var lsplugin_user = { exports: {} };
@@ -130,11 +132,16 @@ function cleanUp() {
 
 function reloadUserRules() {
     const userRules = getUserRules();
+    
     if (userRules.length > 0) {
         specialKeys = [
             // ...logseq.settings?.enableColon ? BuiltInSpecialKeys : BuiltInSpecialKeys.filter((rule)=>rule.trigger !== "：："),
             ...userRules
         ];
+    }
+    
+    if(is_debugging) {
+        console.log("specialKeys", specialKeys);
     }
 }
 
@@ -363,7 +370,27 @@ function findBarPos(str, calls) {
 
 function getUserRules() {
     const settings = logseq.settings;
+
+    if(is_debugging){
+        console.log("User Rules:", settings.latex_snippets)
+    }
+
     const ret = []; // It initializes an empty array ret to store the parsed rules.
+
+    // Read triggers and replacements from settings.latex_snippets, and store to the ret array.
+
+    for(let i = 0; i < settings.latex_snippets.length; i++){
+        let rule = settings.latex_snippets[i];
+        ret.push({
+            trigger: new RegExp(`${rule.trigger}$`),
+            type: TRIGGER_REGEX,
+            repl: rule.replacement
+        });
+    }
+
+    return ret;
+
+    // The previous function to read the ret array from user setting schema.
     for (const key of Object.keys(settings)) {
         const match = key.match(/([^0-9]+)(\d+)/); // Looks for a sequence of non-digits followed by one or more digits at the end of the key.
 
@@ -419,8 +446,13 @@ function getUserRules() {
             ret[i].repl = settings[key];
         }
     }
+    
+
     return ret.filter((rule) => rule.trigger); // this line of code is essentially filtering out any elements (rules) in the ret array that don't have a trigger property, or where the trigger property is falsy. The resulting array is then returned by the function.
+    
 }
+
+
 
 
 async function processReplacement(repl) {

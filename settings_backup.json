@@ -1,0 +1,32 @@
+{
+    "enableColon": true,
+    
+    "latex_snippets": [
+      {
+        "trigger": "(?<!\\math)cal(.+)",
+        "replacement": "\\mathcal{$1}@"
+      },
+      {
+        "trigger": "(?<!\\math)scr(.+)",
+        "replacement": "\\mathscr{$1}@"
+      },
+      {
+        "trigger": "(?<!\\math)frak(.+)",
+        "replacement": "\\mathfrak{$1}@"
+      },
+      {
+        "trigger": "(?<!\\math)bb(.+)",
+        "replacement": "\\mathbb{$1}@"
+      },
+      {
+        "trigger": "(?<!\\math)bf(.+)",
+        "replacement": "\\mathbf{$1}@"
+      },
+      {
+        "trigger": "(?<!\\math)rm(.+)",
+        "replacement": "\\mathrm{$1}@"
+      }
+  
+    ],
+    "disabled": false
+  }
