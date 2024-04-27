@@ -1,32 +1,90 @@
 {
-    "enableColon": true,
-    
-    "latex_snippets": [
-      {
-        "trigger": "(?<!\\math)cal(.+)",
-        "replacement": "\\mathcal{$1}@"
-      },
-      {
-        "trigger": "(?<!\\math)scr(.+)",
-        "replacement": "\\mathscr{$1}@"
-      },
-      {
-        "trigger": "(?<!\\math)frak(.+)",
-        "replacement": "\\mathfrak{$1}@"
-      },
-      {
-        "trigger": "(?<!\\math)bb(.+)",
-        "replacement": "\\mathbb{$1}@"
-      },
-      {
-        "trigger": "(?<!\\math)bf(.+)",
-        "replacement": "\\mathbf{$1}@"
-      },
-      {
-        "trigger": "(?<!\\math)rm(.+)",
-        "replacement": "\\mathrm{$1}@"
-      }
-  
-    ],
-    "disabled": false
-  }
+  "enableColon": false,
+  "disabled": false,
+  "latex_snippets": [
+    {
+      "trigger": "(?<!\\\\math)cal(.+)",
+      "replacement": "\\mathcal{$1}@"
+    },
+    {
+      "trigger": "(?<!\\\\math)scr(.+)",
+      "replacement": "\\mathscr{$1}@"
+    },
+    {
+      "trigger": "(?<!\\\\math)frak(.+)",
+      "replacement": "\\mathfrak{$1}@"
+    },
+    {
+      "trigger": "(?<!\\\\math)bb(.+)",
+      "replacement": "\\mathbb{$1}@"
+    },
+    {
+      "trigger": "(?<!\\\\math)bf(.+)",
+      "replacement": "\\mathbf{$1}@"
+    },
+    {
+      "trigger": "(?<!\\\\math)rm(.+)",
+      "replacement": "\\mathrm{$1}@"
+    },
+    {
+      "trigger": "(?<!{)(s|S)et",
+      "replacement": "\\mathrm{Set}@"
+    },
+    {
+      "trigger": "(?<!{)(g|G)rp",
+      "replacement": "\\mathrm{Grp}@"
+    },
+    {
+      "trigger": "(?<!{)(a|A)b",
+      "replacement": "\\mathrm{Ab}@"
+    },
+    {
+      "trigger": "(?<!{)(v|V)ec",
+      "replacement": "\\mathrm{Vec}@"
+    },
+    {
+      "trigger": "(?<!{)(f|F)un",
+      "replacement": "\\operatorname{Fun}@"
+    },
+    {
+      "trigger": "(?<!{)(t|T)op",
+      "replacement": "\\mathrm{Top}@"
+    },
+    {
+      "trigger": "(?<!\\\\)hat(.+)",
+      "replacement": "\\hat{$1}@"
+    },
+    {
+      "trigger": "(?<!\\\\)tilde(.+)",
+      "replacement": "\\tilde{$1}@"
+    },
+    {
+      "trigger": "(?<!\\\\)bar(.+)",
+      "replacement": "\\bar{$1}@"
+    },
+    {
+      "trigger": "(?<!\\\\)sum",
+      "replacement": "\\sum_{}^{}@"
+    },
+    {
+      "trigger": "(?<!\\\\)prod",
+      "replacement": "\\prod_{}^{}@"
+    },
+    {
+      "trigger": "(?<!\\\\)integrate",
+      "replacement": "\\integrate_{}^{}@"
+    },
+    {
+      "trigger": "(?<!\\\\)lim",
+      "replacement": "\\lim_{n \\to \\infty}@"
+    },
+    {
+      "trigger": "Z([0-9]|n|p)",
+      "replacement": "Z_{$1}@"
+    },
+    {
+      "trigger": "\\\\{",
+      "replacement": "\\{@\\}"
+    }
+  ]
+}
