@@ -111,8 +111,8 @@ function cleanUp() {
     // appContainer.removeEventListener("keydown", keydownHandler);
 }
 
-function reloadUserRules() {
-    const userRules = getUserRules();
+async function reloadUserRules() {
+    const userRules = await getUserRules();
     
     if (userRules.length > 0) {
         specialKeys = [
@@ -122,7 +122,7 @@ function reloadUserRules() {
     }
     
     if(is_debugging) {
-        console.log("specialKeys", specialKeys);
+        console.log("User rules:", specialKeys);
     }
 }
 
@@ -349,19 +349,25 @@ function findBarPos(str, calls) {
     return -1;
 }
 
-function getUserRules() {
-    const settings = logseq.settings;
+async function getUserRules() {
+    // const settings = logseq.settings;
+    const file = await fetch('./snippets.json')
+    var config;
 
-    if(is_debugging){
-        console.log("User Rules:", settings.latex_snippets)
+    if (file.ok) { // if HTTP-status is 200-299
+        config = await file.json();
+    } else {
+        console.error("HTTP-Error: ", file.status);
+        return [];
     }
 
     const ret = []; // It initializes an empty array ret to store the parsed rules.
 
     // Read triggers and replacements from settings.latex_snippets, and store to the ret array.
 
-    for(let i = 0; i < settings.latex_snippets.length; i++){
-        let rule = settings.latex_snippets[i];
+    for(let i = 0; i < config.regex_rules.length; i++){
+        let rule = config.regex_rules[i];
+
         ret.push({
             trigger: new RegExp(`${rule.trigger}$`),
             type: TRIGGER_REGEX,
@@ -370,67 +376,6 @@ function getUserRules() {
     }
 
     return ret;
-
-    // The previous function to read the ret array from user setting schema.
-    for (const key of Object.keys(settings)) {
-        const match = key.match(/([^0-9]+)(\d+)/); // Looks for a sequence of non-digits followed by one or more digits at the end of the key.
-
-        if (!match) {
-            // If the key doesn't match the regex, it adds the corresponding setting to ret and ... 
-            ret[key] = settings[key];
-
-            continue; // ... continues to the next key.
-        }
-
-        const [, k, n] = match;
-        const i = +n - 1;
-
-
-
-        if (ret[i] == null) {
-            ret[i] = {};
-        }
-
-        if (k === "trigger") { // 'trigger1' 'trigger2' ...
-            const value = settings[key];
-            if (value.length > 3 && value.endsWith("   ")) {
-
-                ret[i].trigger = value.substring(0, value.length - 3);
-                ret[i].type = TRIGGER_WORD;
-
-            } else if (value.length > 2 && value.endsWith("  ")) {
-                ret[i].trigger = value.substring(0, value.length - 2);
-                ret[i].type = TRIGGER_SPACE;
-            } else if (value.length > 1 && value.endsWith("\#")) {
-
-                let str = value.substring(0, value.length - 1);
-
-                /*
-                if(is_debugging){
-                    console.log(`\n REGEX trigger string after escaping=${str}`)
-                }
-                */
-
-                ret[i].trigger = new RegExp(`${str}$`); // Only match the end of the string.
-                ret[i].type = TRIGGER_REGEX;
-
-            } else {
-
-                // This contains many built-in rules. Be careful.
-
-                ret[i].trigger = value.substring(0, value.length);
-                ret[i].type = TRIGGER_IMMEDIATE;
-
-            }
-
-        } else if (k === "replacement") {
-            ret[i].repl = settings[key];
-        }
-    }
-    
-
-    return ret.filter((rule) => rule.trigger); // this line of code is essentially filtering out any elements (rules) in the ret array that don't have a trigger property, or where the trigger property is falsy. The resulting array is then returned by the function.
-    
 }
 
 
@@ -496,6 +441,7 @@ async function main() {
     });
 
     init();
+    // reloadUserRules();
 
     if(is_debugging){
         console.log("init");
@@ -516,9 +462,9 @@ async function main() {
     
     logseq.beforeunload(() => {
         settingsOff();
-        // reloadUserRules();
         cleanUp();
     });
+   
     console.log("#smart-typing loaded");
 }
 
