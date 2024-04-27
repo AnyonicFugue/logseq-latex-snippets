@@ -28,46 +28,46 @@
 
 
       {
-        "trigger": "(?<![{\\\\a-zA-Z])(s|S)et",
+        "trigger": "(?<![\\\\a-zA-Z])(s|S)et",
         "replacement": "\\mathrm{Set}@"
       },
       {
-        "trigger": "(?<![{\\\\a-zA-Z])(g|G)rp",
+        "trigger": "(?<![\\\\a-zA-Z])(g|G)rp",
         "replacement": "\\mathrm{Grp}@"
       },
       {
-        "trigger": "(?<![{\\\\a-zA-Z])(a|A)b",
+        "trigger": "(?<![\\\\a-zA-Z])(a|A)b",
         "replacement": "\\mathrm{Ab}@"
       },
       {
-        "trigger": "(?<![{\\\\a-zA-Z])s(v|V)ec",
+        "trigger": "(?<![\\\\a-zA-Z])s(v|V)ec",
         "replacement": "\\mathrm{sVec}@"
       },
       {
-        "trigger": "(?<![{\\\\a-zA-Z])(v|V)ec",
+        "trigger": "(?<![\\\\a-zA-Z])(v|V)ec",
         "replacement": "\\mathrm{Vec}@"
       },
       {
-        "trigger": "(?<![{\\\\a-zA-Z])(f|F)un",
+        "trigger": "(?<![\\\\a-zA-Z])(f|F)un",
         "replacement": "\\operatorname{Fun}@"
       },
       {
-        "trigger": "(?<![{\\\\a-zA-Z])(t|T)op",
+        "trigger": "(?<![\\\\a-zA-Z])(t|T)op",
         "replacement": "\\mathrm{Top}@"
       },
 
 
 
       {
-        "trigger": "(?<![{\\\\a-zA-Z])op",
+        "trigger": "(?<![\\\\a-zA-Z])op",
         "replacement": "\\operatorname{@}"
       },
       {
-        "trigger": "(?<![{\\\\a-zA-Z])(hom|Hom)",
+        "trigger": "(?<![\\\\a-zA-Z])(hom|Hom)",
         "replacement": "\\operatorname{Hom}(@)"
       },
       {
-        "trigger": "(?<![{\\\\a-zA-Z])(tr|Tr)(?!})",
+        "trigger": "(?<![\\\\a-zA-Z])(tr|Tr)(?!})",
         "replacement": "\\operatorname{Tr}@"
       },
 

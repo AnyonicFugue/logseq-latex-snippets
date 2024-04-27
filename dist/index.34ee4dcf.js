@@ -192,7 +192,11 @@ async function handleSpecialKeys(textarea, e) {
                         if (match != null) {
                             const matchEnd = match.index + match[0].length; // index is the character where the first match starts. matchEnd is the end of the matched string.
                             const regexRepl = text.substring(match.index, matchEnd).replace(trigger, repl); // Perform the regex replacement to the substring
-                            const [barPos3, replacement3] = await processReplacement(`${regexRepl}${text.substring(matchEnd)}`); // The dollar sign plugs in variables in {}
+
+
+                            const barPos3 = findBarPos(regexRepl); // Find the position of the bar in the replacement string
+                            
+                            const replacement3 = regexRepl.replace('@','').concat(text.substring(matchEnd))  // Remove the '@' from the string, then concatenate the replacement string with the text after the matchEnd position.
                             const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length - (textarea.value.length - textarea.selectionStart) + 1;
 
                             if (is_debugging) {
@@ -335,15 +339,10 @@ function matchSpecialKey(text, start, trigger, skip = 0) {
 }
 
 
-function findBarPos(str, calls) {
-    chars: for (let i = str.length - 1; i >= 0; i--) {
+function findBarPos(str) {
+    for (let i = str.length - 1; i >= 0; i--) {
         if (str[i] === "@") {
-            for (const call of calls) {
-                if (i >= call.start && i <= call.end) {
-                    continue chars;
-                }
-            }
-            return i;
+            return i-1;
         }
     }
     return -1;
@@ -395,36 +394,13 @@ async function processReplacement(repl) {
     The matched text (excluding the braces) is then passed to the evaluate function.`
     */
 
-    let barPos = findBarPos(repl, calls);
+    let barPos = findBarPos(repl);
 
     if (barPos > 0) {
         barPos = barPos - 1 //-1 accounts for the @ sign
     }
 
     if (is_debugging) { }
-
-    /* 
-    It seems I do not need any calls.
-
-
-    if (calls.length > 0) {
-      let i = 0;
-      const segments = [];
-      for (const call of calls){
-          segments.push(repl.substring(i, call.start));
-          segments.push(call.repl);
-          i = call.end;
-          if (call.end < barPos) {
-              barPos += segments.join("").length - i;
-          }
-      }
-      segments.push(repl.substring(i));
-      return [
-          barPos,
-          segments.join("")
-      ];
-    }
-    */
 
 
     return [
