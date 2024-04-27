@@ -35,25 +35,6 @@ function t(key, args) {
     return Object.entries(args).reduce((str, [name, val]) => str.replaceAll(`\${${name}}`, val), template);
 }
 
-function generateTriggerSchema() { // Generate input schema for trigger and replacement pairs.
-    const schema = [];
-    for (let i = 1; i <= 100; i++) {
-        schema.push({
-            key: `trigger${i}`,
-            type: "string",
-            default: "",
-            description: t("Trigger characters. Ending in space will trigger on word boundary; ending in double spaces will trigger on space but will not type space on screen; ending in # to enable regex, triggered on space.")
-        }, {
-            key: `replacement${i}`,
-            type: "string",
-            inputAs: "textarea",
-            default: "",
-            description: t("Replacement. JS expressions are in double curly brackets like `{{time()}}`. `@` means cursor position.")
-        });
-    }
-    return schema;
-}
-
 var zhCN = {
     "Trigger characters. Ending in space will trigger on word boundary; ending in double spaces will trigger on space but will not type space on screen; ending in # to enable regex, triggered on space.": "触发字符。以空格结尾会以标点或空格触发；以双空格结尾会以空格触发，但不输入空格；以#结尾启用正则，以空格触发。",
     "Replacement. JS expressions are in double curly brackets like `{{time()}}`. @` means cursor position.": "替换文字。可在双花括号里写JS表达式，例如`{{time()}}`。`@`代表光标位置。",
@@ -516,20 +497,26 @@ async function main() {
 
     init();
 
+    if(is_debugging){
+        console.log("init");
+    }
+
+    
     logseq.useSettingsSchema([
         {
             key: "enableColon",
             type: "boolean",
             default: true,
             description: t("Enable or not Chinese double-colon replacement.")
-        },
-        ...generateTriggerSchema()
+        }
     ]);
 
     const settingsOff = logseq.onSettingsChanged(reloadUserRules);
-
+    
+    
     logseq.beforeunload(() => {
         settingsOff();
+        // reloadUserRules();
         cleanUp();
     });
     console.log("#smart-typing loaded");
