@@ -1,9 +1,9 @@
 {
-    "name": "logseq-plugin-smart-typing-customized",
-    "version": "v0.15.0",
-    "main": "dist/index.html",
+    "name": "logseq-latex-snippets",
+    "version": "v0.1",
+    "main": "./index.html",
     "logseq": {
-        "id": "logseq-smart-typing_customized",
+        "id": "logseq-latex-snippets",
         "icon": "./icon.jpg"
     },
     "scripts": {
@@ -26,12 +26,9 @@
         "rollup": "^2.74.1",
         "rollup-plugin-swc3": "^0.3.0"
     },
-    "repo": "sethyuan/logseq-plugin-smart-typing",
-    "title": "Smart Typing-customized",
-    "author": "Yizhou Ma",
-    "description": "Customized to work for regex in latex.",
-    "effect": true,
-    "sponsors": [
-        "https://www.buymeacoffee.com/sethyuan"
-    ]
+    "repo": "AnyonicFugue/logseq-latex-snippets",
+    "title": "Latex Snippets",
+    "author": "AnyonicFugue",
+    "description": "Regex snippets in latex.",
+    "effect": true
 }

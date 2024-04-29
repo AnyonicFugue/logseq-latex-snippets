@@ -54,13 +54,25 @@
       {
         "trigger": "(?<![\\\\a-zA-Z])(t|T)op",
         "replacement": "\\mathrm{Top}@"
+      },      
+      {
+        "trigger": "(?<![\\\\a-zA-Z])(v|V)ec(g|G)",
+        "replacement": "\\mathrm{Vec}_{G}@"
+      },      
+      {
+        "trigger": "(?<![\\\\a-zA-Z])(r|R)ep(g|G)",
+        "replacement": "\\mathrm{Rep}(G)@"
+      },
+      {
+        "trigger": "(?<![\\\\a-zA-Z])(overto)",
+        "replacement": "\\overset{@}{\\to} "
       },
 
 
 
       {
         "trigger": "(?<![\\\\a-zA-Z])op",
-        "replacement": "\\operatorname{@}"
+        "replacement": "\\operatorname{@} "
       },
       {
         "trigger": "(?<![\\\\a-zA-Z])(hom|Hom)",
@@ -68,7 +80,11 @@
       },
       {
         "trigger": "(?<![\\\\a-zA-Z])(tr|Tr)(?!})",
-        "replacement": "\\operatorname{Tr}@"
+        "replacement": "\\operatorname{Tr} @"
+      },
+      {
+        "trigger": "(?<![\\\\a-zA-Z])(ot)",
+        "replacement": "\\otimes @"
       },
 
 
@@ -90,19 +106,19 @@
 
       {
         "trigger": "(?<![\\\\a-zA-Z])sum",
-        "replacement": "\\sum_{}^{}@"
+        "replacement": "\\sum_{}^{} @"
       },
       {
         "trigger": "(?<![\\\\a-zA-Z])prod",
-        "replacement": "\\prod_{}^{}@"
+        "replacement": "\\prod_{}^{} @"
       },
       {
         "trigger": "(?<![\\\\a-zA-Z])integrate",
-        "replacement": "\\integrate_{}^{}@"
+        "replacement": "\\integrate_{}^{} @"
       },
       {
         "trigger": "(?<![\\\\a-zA-Z])lim",
-        "replacement": "\\lim_{n \\to \\infty}@"
+        "replacement": "\\lim_{n \\to \\infty} @"
       },
 
 
