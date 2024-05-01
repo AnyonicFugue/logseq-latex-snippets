@@ -121,17 +121,6 @@ async function reloadUserRules() {
     }
 }
 
-/*
-async function reloadUserFns() {
-    const fnStrings = (await logseq.DB.datascriptQuery(`[:find (pull ?b [:block/content])
-      :where
-      [?t :block/name ".fn"]
-      [?b :block/refs ?t]]`) ?? []).map((item)=>item[0].content.match(/```.+\n((?:.|\n)+)\n```/)[1]);
-    for (const fnStr of fnStrings){
-        evaluate(fnStr);
-    }
-}
-*/
 
 async function inputHandler(e) {
     if (e.data == null || e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing) return; //  If the event doesn't meet these conditions, or if e.data is null, or if the input is being composed (i.e., the user is in the middle of using an Input Method Editor to enter complex characters), the function returns immediately.
@@ -355,19 +344,30 @@ async function getUserRules() {
         return [];
     }
 
+    if(is_debugging){
+        console.log("config", config.regex_rules);
+    }
+
     const ret = []; // It initializes an empty array ret to store the parsed rules.
 
-    // Read triggers and replacements from settings.latex_snippets, and store to the ret array.
+    // Read triggers and replacements from settings.latex_snippets, and store to the ret array.W
 
-    for(let i = 0; i < config.regex_rules.length; i++){
-        let rule = config.regex_rules[i];
+    for (const group of Object.keys(config.regex_rules)){
 
-        ret.push({
-            trigger: new RegExp(`${rule.trigger}$`),
-            type: TRIGGER_REGEX,
-            repl: rule.replacement
-        });
+        for(let i = 0; i < config.regex_rules[group].length; i++){
+            let rule = config.regex_rules[group][i];
+    
+            ret.push({
+                trigger: new RegExp(`${rule.trigger}$`),
+                type: TRIGGER_REGEX,
+                repl: rule.replacement
+            });
+        }
+
+        console.log(`Group ${group} loaded`);
     }
+
+
 
     return ret;
 }

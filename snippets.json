@@ -1,5 +1,7 @@
 {
-    "regex_rules": [
+  "regex_rules": {
+
+    "fonts": [
       {
         "trigger": "(?<![a-zA-Z])cal(.+)",
         "replacement": "\\mathcal{$1}@"
@@ -23,10 +25,10 @@
       {
         "trigger": "(?<![a-zA-Z])rm(.+)",
         "replacement": "\\mathrm{$1}@"
-      },
+      }
+    ],
 
-
-
+    "category theory": [
       {
         "trigger": "(?<![\\\\a-zA-Z])(s|S)et",
         "replacement": "\\mathrm{Set}@"
@@ -54,11 +56,11 @@
       {
         "trigger": "(?<![\\\\a-zA-Z])(t|T)op",
         "replacement": "\\mathrm{Top}@"
-      },      
+      },
       {
         "trigger": "(?<![\\\\a-zA-Z])(v|V)ec(g|G)",
         "replacement": "\\mathrm{Vec}_{G}@"
-      },      
+      },
       {
         "trigger": "(?<![\\\\a-zA-Z])(r|R)ep(g|G)",
         "replacement": "\\mathrm{Rep}(G)@"
@@ -66,10 +68,10 @@
       {
         "trigger": "(?<![\\\\a-zA-Z])(overto)",
         "replacement": "\\overset{@}{\\to} "
-      },
+      }
+    ],
 
-
-
+    "operators": [
       {
         "trigger": "(?<![\\\\a-zA-Z])op",
         "replacement": "\\operatorname{@} "
@@ -82,28 +84,6 @@
         "trigger": "(?<![\\\\a-zA-Z])(tr|Tr)(?!})",
         "replacement": "\\operatorname{Tr} @"
       },
-      {
-        "trigger": "(?<![\\\\a-zA-Z])(ot)",
-        "replacement": "\\otimes @"
-      },
-
-
-
-      {
-        "trigger": "(?<![\\\\a-zA-Z])hat(.+)",
-        "replacement": "\\hat{$1}@"
-      },
-      {
-        "trigger": "(?<![\\\\a-zA-Z])tilde(.+)",
-        "replacement": "\\tilde{$1}@"
-      },
-      {
-        "trigger": "(?<![\\\\a-zA-Z])bar(.+)",
-        "replacement": "\\bar{$1}@"
-      },
-
-
-
       {
         "trigger": "(?<![\\\\a-zA-Z])sum",
         "replacement": "\\sum_{}^{} @"
@@ -119,10 +99,29 @@
       {
         "trigger": "(?<![\\\\a-zA-Z])lim",
         "replacement": "\\lim_{n \\to \\infty} @"
+      }
+    ],
+
+    "overset": [
+      {
+        "trigger": "(?<![\\\\a-zA-Z])hat(.+)",
+        "replacement": "\\hat{$1}@"
       },
+      {
+        "trigger": "(?<![\\\\a-zA-Z])tilde(.+)",
+        "replacement": "\\tilde{$1}@"
+      },
+      {
+        "trigger": "(?<![\\\\a-zA-Z])bar(.+)",
+        "replacement": "\\bar{$1}@"
+      }
+    ],
 
-
-
+    "misc": [
+      {
+        "trigger": "(?<![\\\\a-zA-Z])(ot)",
+        "replacement": "\\otimes @"
+      },
       {
         "trigger": "Z([0-9]|n|p)",
         "replacement": "Z_{$1}@"
@@ -130,6 +129,11 @@
       {
         "trigger": "\\\\{",
         "replacement": "\\{@\\}"
+      },
+      {
+        "trigger": "(?<![{a-zA-Z])(align)",
+        "replacement": "\\begin{aligned}\n@\n\\end{aligned} "
       }
     ]
   }
+}
