@@ -16,6 +16,9 @@ let locale$1 = DEFAULT_LOCALE;
 let translations = {};
 
 let user_settings = {};
+/*
+* The user's settings. E.g. : if (user_settings.enableDollarBracket) { ... }
+*/
 
 async function setup({ defaultLocale = DEFAULT_LOCALE, builtinTranslations, }) {
     locale$1 = (await logseq.App.getUserConfigs()).preferredLanguage;
@@ -79,6 +82,11 @@ let regexRules = [];
 const evaluate = eval;
 
 let selectedText = "";
+/* 
+* The selected text is temperarily stored here.
+* It is updated in callback function beforeInputHandler; when user types, the selected words will be replaced due to logseq.
+* So here is a copy of that deleted words, e.g. to enable bracket behavior of dollar symbols. See function handlePairs for example.
+*/
 
 
 function init() { // sets up a function that will be called whenever the specified event happens (e.g. keydown, beforeinput)
@@ -212,20 +220,22 @@ async function handlePairs(textarea, e) {
 	
     if (char === "$") {
         const blockUUID = getBlockUUID(e.target);
-		if (!isInLatex(prevText) && nextChar === "$") {
+		if (!isInLatex(prevText) && nextChar === "$") { // If the case is "$abc@$" where @ is the position of cursor, move cursor out of the dollar.
 			const replacement = "".concat(textarea.value.substring(textarea.selectionStart))
 			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 2);
 			return true; // Move cursor out of latex env.
+            // NOTE : works only for single dollar.
 		}
-		if (user_settings.enableDollarBracket) {
+		if (user_settings.enableDollarBracket) { // bracket behavior: wrap the selected text with dollar
 			const middle_str = selectedText;
 			const trim_left = middle_str.trimStart();
-			const trim_right = trim_left.trimEnd();
+			const trim_right = trim_left.trimEnd(); // Remove suffix space
 			const l_dollar = middle_str !== trim_left ? " $" : "$";
 			const r_dollar = trim_left !== trim_right ? "$ " : "$";
 			const replacement = l_dollar + trim_right + r_dollar + textarea.value.substring(textarea.selectionStart);
 			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
-		} else {
+		}
+        else { // simply replace the selected text.
 			const replacement = "$$" + textarea.value.substring(textarea.selectionStart);
 			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
 		}
@@ -400,7 +410,7 @@ async function main() {
             key: "enableDollarBracket",
             type: "boolean",
             default: true,
-            description: t("Enable or not: Select text and input dollar to add dollars aside the text.")
+            description: t("Enable or not: Wrap selected text with dollars, when dollar is typed.")
         }
     ]).settings;
 
