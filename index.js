@@ -222,7 +222,7 @@ async function handlePairs(textarea, e) {
         const blockUUID = getBlockUUID(e.target);
 		if (!isInLatex(prevText) && nextChar === "$") { // If the case is "$abc@$" where @ is the position of cursor, move cursor out of the dollar.
 			const replacement = "".concat(textarea.value.substring(textarea.selectionStart))
-			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 2);
+			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
 			return true; // Move cursor out of latex env.
             // NOTE : works only for single dollar.
 		}
@@ -240,6 +240,24 @@ async function handlePairs(textarea, e) {
 			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
 		}
         return true;
+    }
+
+    if (user_settings.enableVerticalLineBracket) { // bracket behavior: wrap the selected text with vertical line "|"
+        if (char === "|" && prevChar !== "\\" && isInLatex(prevText)) {
+            const blockUUID = getBlockUUID(e.target);
+            if (nextChar === "|") { // If the case is "abc@|" where @ is the position of cursor, move cursor out of the vertical line.
+                const replacement = "".concat(textarea.value.substring(textarea.selectionStart))
+                await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+                return true; // Move cursor out of latex env.
+                // NOTE : works only for single dollar.
+            }
+			const middle_str = selectedText;
+			const trim_left = middle_str.trimStart();
+			const trim_right = trim_left.trimEnd(); // Remove suffix space
+			const replacement = "|" + trim_right + "|" + textarea.value.substring(textarea.selectionStart);
+			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+            return true;
+        }
     }
 
     if (char === "(") {
@@ -411,6 +429,12 @@ async function main() {
             type: "boolean",
             default: true,
             description: t("Enable or not: Wrap selected text with dollars, when dollar is typed.")
+        },
+		{
+            key: "enableVerticalLineBracket",
+            type: "boolean",
+            default: true,
+            description: t("Enable or not: In latex environment, wrap selected text with vertical line \"|\", when it is typed.")
         }
     ]).settings;
 
