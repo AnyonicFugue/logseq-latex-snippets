@@ -31,12 +31,8 @@ function t(key, args) {
 }
 
 var zhCN = {
-    "Trigger characters. Ending in space will trigger on word boundary; ending in double spaces will trigger on space but will not type space on screen; ending in # to enable regex, triggered on space.": "触发字符。以空格结尾会以标点或空格触发；以双空格结尾会以空格触发，但不输入空格；以#结尾启用正则，以空格触发。",
-    "Replacement. JS expressions are in double curly brackets like `{{time()}}`. @` means cursor position.": "替换文字。可在双花括号里写JS表达式，例如`{{time()}}`。`@`代表光标位置。",
     "Reload user functions": "重新加载用户函数",
     "User defined functions reloaded.": "用户函数已重新加载。",
-    "Enable or not Chinese double-colon replacement.": "是否开启：：替换。",
-    "Enable or not Chinese double-bracket replacement.": "是否开启【【替换。"
 };
 
 
@@ -70,8 +66,6 @@ window.callCommand = (key, ...args) => {
 };
 
 const TRIGGER_IMMEDIATE = 1;
-const TRIGGER_WORD = 2;
-const TRIGGER_SPACE = 3;
 const TRIGGER_REGEX = 4;
 const PairOpenChars = '{([';
 const PairCloseChars = '})]';
