@@ -251,11 +251,13 @@ async function handlePairs(textarea, e) {
                 return true; // Move cursor out of latex env.
                 // NOTE : works only for single dollar.
             }
-			const middle_str = selectedText;
-			const trim_left = middle_str.trimStart();
-			const trim_right = trim_left.trimEnd(); // Remove suffix space
-			const replacement = "|" + trim_right + "|" + textarea.value.substring(textarea.selectionStart);
-			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+            if (selectedText !== "") {
+                const middle_str = selectedText;
+                const trim_left = middle_str.trimStart();
+                const trim_right = trim_left.trimEnd(); // Remove suffix space
+                const replacement = "|" + trim_right + "|" + textarea.value.substring(textarea.selectionStart);
+                await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+            }
             return true;
         }
     }
@@ -418,23 +420,17 @@ async function main() {
 
     
     user_settings = logseq.useSettingsSchema([
-        {
-            key: "enableColon",
-            type: "boolean",
-            default: true,
-            description: t("Enable or not: Chinese double-colon replacement.")
-        },
 		{
             key: "enableDollarBracket",
             type: "boolean",
             default: true,
-            description: t("Enable or not: Wrap selected text with dollars, when dollar is typed.")
+            description: t("Enable: Wrap selected text with dollars, when dollar is typed.")
         },
 		{
             key: "enableVerticalLineBracket",
             type: "boolean",
-            default: true,
-            description: t("Enable or not: In latex environment, wrap selected text with vertical line \"|\", when it is typed.")
+            default: false,
+            description: t("Enable: In latex environment, wrap selected text with vertical line \"|\", when it is typed.")
         }
     ]).settings;
 
