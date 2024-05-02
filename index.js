@@ -14,6 +14,9 @@ const is_debugging = true;
 const DEFAULT_LOCALE = "en";
 let locale$1 = DEFAULT_LOCALE;
 let translations = {};
+
+let user_settings = {};
+
 async function setup({ defaultLocale = DEFAULT_LOCALE, builtinTranslations, }) {
     locale$1 = (await logseq.App.getUserConfigs()).preferredLanguage;
     if (locale$1 === defaultLocale)
@@ -75,12 +78,14 @@ let regexRules = [];
 
 const evaluate = eval;
 
+let selectedText = "";
+
 
 function init() { // sets up a function that will be called whenever the specified event happens (e.g. keydown, beforeinput)
     const appContainer = parent.document.getElementById("app-container");
 
     // appContainer.addEventListener("keydown", keydownHandler); // The keydown event is fired for all keys, regardless of whether they produce a character value.
-    // appContainer.addEventListener("beforeinput", beforeInputHandler); // The DOM beforeinput event fires when the value of an <input> or <textarea> element is about to be modified. But in contrast to the input event, it does not fire on the <select> element.
+    appContainer.addEventListener("beforeinput", beforeInputHandler); // The DOM beforeinput event fires when the value of an <input> or <textarea> element is about to be modified. But in contrast to the input event, it does not fire on the <select> element.
 
     // Not every user modification results in beforeinput firing. Also the event may fire but be non-cancelable. This may happen when the modification is done by autocomplete, by accepting a correction from a spell checker, by password manager autofill, by IME, or in other ways. The details vary by browser and OS. To override the edit behavior in all situations, the code needs to handle the input event and possibly revert any modifications that were not handled by the beforeinput handler.
 
@@ -94,7 +99,7 @@ function cleanUp() {
     // appContainer.removeEventListener("compositionend", inputHandler);
 
     appContainer.removeEventListener("input", inputHandler);
-    // appContainer.removeEventListener("beforeinput", beforeInputHandler);
+    appContainer.removeEventListener("beforeinput", beforeInputHandler);
     // appContainer.removeEventListener("keydown", keydownHandler);
 }
 
@@ -119,6 +124,12 @@ async function inputHandler(e) {
     const textarea = e.target;
 
     await handleRules(textarea, e) || await handlePairs(textarea, e);
+}
+
+async function beforeInputHandler(e) {
+    if (e.data == null || e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing) return; //  If the event doesn't meet these conditions, or if e.data is null, or if the input is being composed (i.e., the user is in the middle of using an Input Method Editor to enter complex characters), the function returns immediately.
+	let beforeInputTextArea = e.target;
+	selectedText = beforeInputTextArea.value.substring(beforeInputTextArea.selectionStart, beforeInputTextArea.selectionEnd);
 }
 
 async function handleRules(textarea, e) {
@@ -197,11 +208,27 @@ async function handlePairs(textarea, e) {
     const nextChar = textarea.value[textarea.selectionStart];
     const prevChar = textarea.value[textarea.selectionStart - 2];
 
-
+	const prevText = textarea.value.substring(0, textarea.selectionStart);
+	
     if (char === "$") {
         const blockUUID = getBlockUUID(e.target);
-        const replacement = "$$".concat(textarea.value.substring(textarea.selectionStart))
-        await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+		if (!isInLatex(prevText) && nextChar === "$") {
+			const replacement = "".concat(textarea.value.substring(textarea.selectionStart))
+			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 2);
+			return true; // Move cursor out of latex env.
+		}
+		if (user_settings.enableDollarBracket) {
+			const middle_str = selectedText;
+			const trim_left = middle_str.trimStart();
+			const trim_right = trim_left.trimEnd();
+			const l_dollar = middle_str !== trim_left ? " $" : "$";
+			const r_dollar = trim_left !== trim_right ? "$ " : "$";
+			const replacement = l_dollar + trim_right + r_dollar + textarea.value.substring(textarea.selectionStart);
+			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+		} else {
+			const replacement = "$$" + textarea.value.substring(textarea.selectionStart);
+			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+		}
         return true;
     }
 
@@ -362,14 +389,20 @@ async function main() {
     }
 
     
-    logseq.useSettingsSchema([
+    user_settings = logseq.useSettingsSchema([
         {
             key: "enableColon",
             type: "boolean",
             default: true,
-            description: t("Enable or not Chinese double-colon replacement.")
+            description: t("Enable or not: Chinese double-colon replacement.")
+        },
+		{
+            key: "enableDollarBracket",
+            type: "boolean",
+            default: true,
+            description: t("Enable or not: Select text and input dollar to add dollars aside the text.")
         }
-    ]);
+    ]).settings;
 
     const settingsOff = logseq.onSettingsChanged(reloadUserRules);
     
