@@ -77,12 +77,10 @@ const PairOpenChars = '{([';
 const PairCloseChars = '})]';
 
 
-let specialKeys = [];
+let regexRules = [];
 
 const evaluate = eval;
-const WordBoundaryR = /[^\u2E80-\u2FFF\u31C0-\u31EF\u3300-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\uFE30-\uFE4FA-Za-z_]/;
-const Punc = /^[!@#$%^&*\-+=_,./?;:！¥…—，。？；：]|\s$/;
-let beforeInputTextArea = {};
+
 
 function init() { // sets up a function that will be called whenever the specified event happens (e.g. keydown, beforeinput)
     const appContainer = parent.document.getElementById("app-container");
@@ -110,14 +108,13 @@ async function reloadUserRules() {
     const userRules = await getUserRules();
     
     if (userRules.length > 0) {
-        specialKeys = [
-            // ...logseq.settings?.enableColon ? BuiltInSpecialKeys : BuiltInSpecialKeys.filter((rule)=>rule.trigger !== "：："),
+        regexRules = [
             ...userRules
         ];
     }
     
     if(is_debugging) {
-        console.log("User rules:", specialKeys);
+        console.log("User rules:", regexRules);
     }
 }
 
@@ -127,12 +124,12 @@ async function inputHandler(e) {
 
     const textarea = e.target;
 
-    await handleSpecialKeys(textarea, e) || await handlePairs(textarea, e);
+    await handleRules(textarea, e) || await handlePairs(textarea, e);
 }
 
-async function handleSpecialKeys(textarea, e) {
+async function handleRules(textarea, e) {
 
-    // The handleSpecialKeys function is an asynchronous function that processes special key inputs in a textarea. 
+    // The handleRules function is an asynchronous function that processes special key inputs in a textarea. 
     // It takes two arguments: textarea, which is the textarea element where the input is being entered, and e, which is the event object associated with the input event.
 
     const char = e.data[e.data.length - 1];
@@ -150,19 +147,11 @@ async function handleSpecialKeys(textarea, e) {
     }
 
 
-    for (const { trigger, type, repl } of specialKeys) { // Each element of specialkeys is a rule object with trigger, type, and repl properties.
+    for (const { trigger, type, repl } of regexRules) { // Each element of regexRules is a rule object with trigger, type, and repl properties.
         switch (type) {
             case TRIGGER_IMMEDIATE:
                 {
-                    if (char === trigger[trigger.length - 1] && matchSpecialKey(textarea.value, textarea.selectionStart, trigger, 1)) {
-                        const [barPos, replacement] = await processReplacement(repl);
-                        // replacement=replacement.concat("extra text");
-                        const cursor = barPos < 0 ? 0 : barPos - replacement.length + 1;
-                        const blockUUID = getBlockUUID(e.target);
-                        await updateText(textarea, blockUUID, barPos < 0 ? `${replacement}` : `${replacement.substring(0, barPos)}${replacement.substring(barPos + 1)}`, -trigger.length, 0, trigger !== "：：" ? cursor : null);
-                        return true;
-                    }
-                    break;
+                    // to be filled later
                 }
             case TRIGGER_REGEX:
                 {
@@ -315,14 +304,6 @@ async function updateText(textarea, blockUUID, text, delStartOffset = 0, delEndO
 }
 
 
-function matchSpecialKey(text, start, trigger, skip = 0) {
-    for (let i = trigger.length - 1 - skip, j = -2; i >= 0; i--, j--) {
-        if (text[start + j] !== trigger[i]) return false;
-    }
-    return true;
-}
-
-
 function findBarPos(str) {
     for (let i = str.length - 1; i >= 0; i--) {
         if (str[i] === "@") {
@@ -370,38 +351,6 @@ async function getUserRules() {
 
 
     return ret;
-}
-
-
-
-
-async function processReplacement(repl) {
-    const calls = await Promise.all(Array.from(repl.matchAll(/\{\{((?:[^\{\}]|\{(?!\{)|\}(?!\}))+)\}\}/g)).map(async (m) => {
-        return {
-            start: m.index,
-            end: m.index + m[0].length,
-            repl: await evaluate(m[1])
-        };
-    }));
-
-    /*
-    `The pattern it's looking for is text enclosed in double curly braces {{...}}. 
-    The matched text (excluding the braces) is then passed to the evaluate function.`
-    */
-
-    let barPos = findBarPos(repl);
-
-    if (barPos > 0) {
-        barPos = barPos - 1 //-1 accounts for the @ sign
-    }
-
-    if (is_debugging) { }
-
-
-    return [
-        barPos,
-        repl.replace('@', '')
-    ];
 }
 
 async function main() {

@@ -132,7 +132,7 @@
       },
       {
         "trigger": "(?<![{a-zA-Z])(align)",
-        "replacement": "\\begin{aligned}\n@\n\\end{aligned} "
+        "replacement": "\\\nbegin{aligned}\n@\n\\end{aligned}\n"
       }
     ]
   }
