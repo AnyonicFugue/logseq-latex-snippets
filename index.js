@@ -169,10 +169,10 @@ async function handleRules(textarea, e) {
             case TRIGGER_REGEX:
                 {
                     if (char === " ") {
-                        // const text = textarea.value
-
-                        const text = textarea.value.substring(0, textarea.selectionStart - 1); // Since we've already decided whether we are in Latex, we only need those before the cursor                      
-
+						const lastDollar = textarea.value.substring(0, textarea.selectionStart - 1).lastIndexOf("$");
+							// Find where the latex environment starts.
+                        const text = textarea.value.substring(lastDollar, textarea.selectionStart - 1); // Since we've already decided whether we are in Latex, we only need those before the cursor                      
+						
                         const match = text.match(trigger);
 
                         if (match != null) {
@@ -193,7 +193,7 @@ async function handleRules(textarea, e) {
                             const blockUUID3 = getBlockUUID(e.target);
 
                             //await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3}`, -(text.length - match.index - 1), 0, cursor3);
-                            await updateText(textarea, blockUUID3, `${replacement3}${textarea.value.substring(textarea.selectionStart)}`, -(text.length - match.index + 1), 0, cursor3);
+                            await updateText(textarea, blockUUID3, replacement3 + textarea.value.substring(textarea.selectionStart), -(text.length - match.index + 1), 0, cursor3);
 
                             return true;
                         }
