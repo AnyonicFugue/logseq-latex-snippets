@@ -43,17 +43,6 @@ var zhCN = {
 
 
 
-window.random = (from, to) => {
-    if (from > to) return from;
-    return ~~(Math.random() * (to + 1 - from)) + from;
-};
-
-window.choose = (...choices) => {
-    if (choices.length <= 0) return "";
-    const index = random(0, choices.length - 1);
-    return choices[index];
-};
-
 window.clipboard = async () => {
     return await parent.navigator.clipboard.readText() ?? "";
 };
@@ -212,16 +201,18 @@ async function handlePairs(textarea, e) {
     const char = getChar(e.data[0]);
     const i = getOpenPosition(char);
 
-    // Get the character before and after the cursor in the textarea.
-    const nextChar = textarea.value[textarea.selectionStart];
-    const prevChar = textarea.value[textarea.selectionStart - 2];
 
-	const prevText = textarea.value.substring(0, textarea.selectionStart);
+    const text = textarea.value
+    // Get the character before and after the cursor in the textarea.
+    const nextChar = text[textarea.selectionStart];
+    const prevChar = text[textarea.selectionStart - 2];
+
+	const prevText = text.substring(0, textarea.selectionStart);
 	
     if (char === "$") {
         const blockUUID = getBlockUUID(e.target);
 		if (!isInLatex(prevText) && nextChar === "$") { // If the case is "$abc@$" where @ is the position of cursor, move cursor out of the dollar.
-			const replacement = "".concat(textarea.value.substring(textarea.selectionStart))
+			const replacement = "".concat(text.substring(textarea.selectionStart))
 			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
 			return true; // Move cursor out of latex env.
             // NOTE : works only for single dollar.
@@ -232,11 +223,11 @@ async function handlePairs(textarea, e) {
 			const trim_right = trim_left.trimEnd(); // Remove suffix space
 			const l_dollar = middle_str !== trim_left ? " $" : "$";
 			const r_dollar = trim_left !== trim_right ? "$ " : "$";
-			const replacement = l_dollar + trim_right + r_dollar + textarea.value.substring(textarea.selectionStart);
-			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+			const replacement = l_dollar + trim_right + r_dollar + text.substring(textarea.selectionStart);
+			await updateText(textarea, blockUUID, replacement, -1, 1, -(text.length-textarea.selectionStart));
 		}
         else { // simply replace the selected text.
-			const replacement = "$$" + textarea.value.substring(textarea.selectionStart);
+			const replacement = "$$" + text.substring(textarea.selectionStart);
 			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
 		}
         return true;
@@ -246,7 +237,7 @@ async function handlePairs(textarea, e) {
         if (char === "|" && prevChar !== "\\" && isInLatex(prevText)) {
             const blockUUID = getBlockUUID(e.target);
             if (nextChar === "|") { // If the case is "abc@|" where @ is the position of cursor, move cursor out of the vertical line.
-                const replacement = "".concat(textarea.value.substring(textarea.selectionStart))
+                const replacement = "".concat(text.substring(textarea.selectionStart))
                 await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
                 return true; // Move cursor out of latex env.
                 // NOTE : works only for single dollar.
@@ -255,7 +246,7 @@ async function handlePairs(textarea, e) {
                 const middle_str = selectedText;
                 const trim_left = middle_str.trimStart();
                 const trim_right = trim_left.trimEnd(); // Remove suffix space
-                const replacement = "|" + trim_right + "|" + textarea.value.substring(textarea.selectionStart);
+                const replacement = "|" + trim_right + "|" + text.substring(textarea.selectionStart);
                 await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
             }
             return true;
@@ -264,31 +255,11 @@ async function handlePairs(textarea, e) {
 
     if (char === "(") {
         const blockUUID = getBlockUUID(e.target);
-        const replacement = "()".concat(textarea.value.substring(textarea.selectionStart))
+        const replacement = "()".concat(text.substring(textarea.selectionStart))
         await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
         return true;
     }
-    /*
-    if (char === " " && prevChar === "（" && nextChar === "）") {
-        const blockUUID = getBlockUUID(e.target);
-        await updateText(textarea, blockUUID, "()", -2, 1, -1);
-        return true;
-    
-    } else 
-    if (char === nextChar && PairCloseChars.includes(char)) {
-        const blockUUID1 = getBlockUUID(e.target);
-        await updateText(textarea, blockUUID1, "", -1, 0, 1);
-        return true;
-    } 
-    
-    else if (i > -1) { // If the input character is included in PairOpenChars, check several more conditions to determine how to handle the input. 
-        if (nextChar == null || PairCloseChars.includes(nextChar) || Punc.test(nextChar)) {
-            const blockUUID5 = getBlockUUID(e.target);
-            await updateText(textarea, blockUUID5, `${PairOpenChars[i]}${PairCloseChars[i]}`, -1, 0, -1);
-            return true;
-        }
-    }
-    */
+
     return false;
 }
 
@@ -350,7 +321,7 @@ async function updateText(textarea, blockUUID, text, delStartOffset = 0, delEndO
 
     textarea.focus();
     if (cursorOffset != null) {
-        textarea.setSelectionRange(collapsed ? newPos : startPos + numWrapChars, collapsed ? newPos : newPos - numWrapChars); // A general Javascript function, to select which text is selected. If not collapsed, the cursor is places at newPos (by setting the selectionRange to have zeo length.)
+        textarea.setSelectionRange(collapsed ? newPos : startPos + numWrapChars, collapsed ? newPos : newPos - numWrapChars); // Place cursor by select text of zero length. If not collapsed, the cursor is places at newPos (by setting the selectionRange to have zero length.)
     }
 }
 
@@ -475,11 +446,11 @@ function isInLatex(str) {
     str = str.replaceAll(regex_inline, "");
 
 
-    const regex_inline_noend = /\$(?![\s])[\s\S]+$/; // Regex pattern to match $... at the end of the string.
+    const regex_inline_notend = /\$(?![\s])[\s\S]+$/; // Regex pattern to match $... at the end of the string.
 
-    const matches_inline_noend = str.match(regex_inline_noend);
+    const matches_inline_notend = str.match(regex_inline_notend);
 
-    if (matches_inline_noend) {
+    if (matches_inline_notend) {
         // If there are an odd number of matches, it means the cursor is inside a latex expression
 
         return true;
