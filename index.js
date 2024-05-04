@@ -62,11 +62,14 @@ window.callCommand = (key, ...args) => {
 
 const TRIGGER_IMMEDIATE = 1;
 const TRIGGER_REGEX = 4;
+const IN_INLINEMATH = 7;
+const IN_DISPLAYMATH = 10;
 const PairOpenChars = '{([';
 const PairCloseChars = '})]';
 
 
 let regexRules = [];
+let immediateRules = [];
 
 const evaluate = eval;
 
@@ -100,18 +103,129 @@ function cleanUp() {
     // appContainer.removeEventListener("keydown", keydownHandler);
 }
 
+async function getUserRules() {
+    // const settings = logseq.settings;
+    const file = await fetch('./snippets.json')
+    var config;
+
+    if (file.ok) { // if HTTP-status is 200-299
+        config = await file.json();
+    } else {
+        console.error("HTTP-Error: ", file.status);
+        return [];
+    }
+
+    if (is_debugging) {
+        console.log("config", config.regex_rules);
+    }
+
+    const ret = []; // It initializes an empty array ret to store the parsed rules.
+
+    // Read triggers and replacements from settings.latex_snippets, and store to the ret array.W
+
+    for (const group of Object.keys(config.regex_rules)) {
+
+        for (let i = 0; i < config.regex_rules[group].length; i++) {
+            let rule = config.regex_rules[group][i];
+
+            ret.push({
+                trigger: new RegExp(`${rule.trigger}$`),
+                repl: rule.replacement
+            });
+        }
+
+        console.log(`Group ${group} loaded`);
+    }
+
+    return ret;
+}
+
 async function reloadUserRules() {
     const userRules = await getUserRules();
-    
+
     if (userRules.length > 0) {
         regexRules = [
             ...userRules
         ];
     }
-    
-    if(is_debugging) {
+
+    if (is_debugging) {
         console.log("User rules:", regexRules);
     }
+}
+
+
+function getChar(c) {
+    switch (c) {
+        case "“":
+            return "”";
+        case "‘":
+            return "’";
+        default:
+            return c;
+    }
+}
+function getOpenPosition(c) {
+    switch (c) {
+        case "”":
+            return PairOpenChars.indexOf("“");
+        case "’":
+            return PairOpenChars.indexOf("‘");
+        default:
+            return PairOpenChars.indexOf(c);
+    }
+}
+
+
+function getBlockUUID(el) {
+    return el.id.replace(/^edit-block-[0-9]+-/, "");
+}
+
+
+
+function findBarPos(str) {
+    for (let i = str.length - 1; i >= 0; i--) {
+        if (str[i] === "@") {
+            return i - 1;
+        }
+    }
+    return -1;
+}
+
+function isInLatex(str) {
+    // The editor uses markdown format. Given the text before the cursor (str), decide whether the cursor is currently in latex mode.
+
+    // First, decide whether the cursor is in displaymath latex block, i.e. enclosed in $$...$$.
+    const regex_display_boundary = /\$\$/gm; // Regex pattern to match $$. 
+    const matches = str.match(regex_display_boundary);
+    if (matches && matches.length % 2 === 1) {
+        // If there are an odd number of matches, it means the cursor is inside a latex expression
+
+        return IN_DISPLAYMATH;
+    }
+    str = str.replaceAll(regex_display_boundary, "");
+
+    // Then, decide whether the cursor is in inline math mode, i.e. enclosed in $...$.
+
+    // Construct Regex pattern to match $...$ and remove them from str.
+    const regex_inline = /\$(?![\s])([\s\S]+?)(?<![\s])\$/gm; // Regex pattern to match $...$.
+
+    // Remove all matched inline latex
+    str = str.replaceAll(regex_inline, "");
+
+
+    const regex_inline_notend = /\$(?![\s])[\s\S]+$/; // Regex pattern to match $... at the end of the string.
+
+    const matches_inline_notend = str.match(regex_inline_notend);
+
+    if (matches_inline_notend) {
+        // If there are an odd number of matches, it means the cursor is inside a latex expression
+
+        return IN_INLINEMATH;
+    }
+
+    return -1;
+
 }
 
 
@@ -125,8 +239,8 @@ async function inputHandler(e) {
 
 async function beforeInputHandler(e) {
     if (e.data == null || e.target.nodeName !== "TEXTAREA" || !e.target.parentElement.classList.contains("block-editor") || e.isComposing) return; //  If the event doesn't meet these conditions, or if e.data is null, or if the input is being composed (i.e., the user is in the middle of using an Input Method Editor to enter complex characters), the function returns immediately.
-	let beforeInputTextArea = e.target;
-	selectedText = beforeInputTextArea.value.substring(beforeInputTextArea.selectionStart, beforeInputTextArea.selectionEnd);
+    let beforeInputTextArea = e.target;
+    selectedText = beforeInputTextArea.value.substring(beforeInputTextArea.selectionStart, beforeInputTextArea.selectionEnd);
 }
 
 async function handleRules(textarea, e) {
@@ -144,54 +258,66 @@ async function handleRules(textarea, e) {
         }
     }
 
-    if(!(isInLatex(text_befor_cursor))) {
+    const latex_mode = isInLatex(text_befor_cursor);
+    if (latex_mode === -1) {
         return false; // Return early if the cursor is not in a Latex block.
     }
 
+    if (char === " ") {
+        for (const { trigger, repl } of regexRules) { // Each element of regexRules is a rule object with trigger and repl properties.
 
-    for (const { trigger, type, repl } of regexRules) { // Each element of regexRules is a rule object with trigger, type, and repl properties.
-        switch (type) {
-            case TRIGGER_IMMEDIATE:
-                {
-                    // to be filled later
-                }
-            case TRIGGER_REGEX:
-                {
-                    if (char === " ") {
-						const lastDollar = textarea.value.substring(0, textarea.selectionStart - 1).lastIndexOf("$");
-							// Find where the latex environment starts.
-                        const text = textarea.value.substring(lastDollar, textarea.selectionStart - 1); // Since we've already decided whether we are in Latex, we only need those before the cursor                      
-						
-                        const match = text.match(trigger);
+            const lastDollar = textarea.value.substring(0, textarea.selectionStart - 1).lastIndexOf("$");
+            // Find where the latex environment starts.
+            const text = textarea.value.substring(lastDollar, textarea.selectionStart - 1); // Since we've already decided whether we are in Latex, we only need those before the cursor                      
 
-                        if (match != null) {
-                            const matchEnd = match.index + match[0].length; // index is the character where the first match starts. matchEnd is the end of the matched string.
-                            const regexRepl = text.substring(match.index, matchEnd).replace(trigger, repl); // Perform the regex replacement to the substring
+            const match = text.match(trigger);
+
+            if (match != null) {
+                const matchEnd = match.index + match[0].length; // index is the character where the first match starts. matchEnd is the end of the matched string.
+                const regexRepl = text.substring(match.index, matchEnd).replace(trigger, repl); // Perform the regex replacement to the substring
 
 
-                            const barPos3 = findBarPos(regexRepl); // Find the position of the bar in the replacement string
-                            
-                            const replacement3 = regexRepl.replace('@','').concat(text.substring(matchEnd))  // Remove the '@' from the string, then concatenate the replacement string with the text after the matchEnd position.
-                            const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length - (textarea.value.length - textarea.selectionStart) + 1;
+                let barPos3 = findBarPos(regexRepl); // Find the position of the bar in the replacement string
 
-                            if (is_debugging) {
-                                console.log(`REGEX match \n text=${text} \n str_to_match_start=${text.substring(0, match.index)} \n matchedtext=${text.substring(match.index, matchEnd)} \n barPos3=${barPos3} \n replacement3=${replacement3} \n cursor3=${cursor3} \n delstartoffset = ${-(text.length - match.index - 1)}`);
-                            }
+                let replacement3 = regexRepl.replace('@', ''); // Remove the cursor symbol '@' from the replacement string.
 
-
-                            const blockUUID3 = getBlockUUID(e.target);
-
-                            //await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3}`, -(text.length - match.index - 1), 0, cursor3);
-                            await updateText(textarea, blockUUID3, replacement3 + textarea.value.substring(textarea.selectionStart), -(text.length - match.index + 1), 0, cursor3);
-
-                            return true;
-                        }
+                if(latex_mode === IN_DISPLAYMATH) {
+                    if((replacement3.slice(-1) !== " ") && (barPos3 == replacement3.length - 1)){
+                        replacement3 = replacement3.concat(' '); // Add an extra blank after the replacing sign, since in displaymath it is likely that the formula is very long.
+                        barPos3 = barPos3 + 1;
                     }
-                    break;
                 }
+
+                if(!(user_settings.enableDeleteBlankAfterMatch) & latex_mode === IN_INLINEMATH) {
+                    if((replacement3.slice(-1) !== " ") && (barPos3 == replacement3.length - 1)){
+                        replacement3 = replacement3.concat(' '); // Add an extra blank after the replacing sign, since in displaymath it is likely that the formula is very long.
+                        barPos3 = barPos3 + 1;
+                    }
+                }
+
+                replacement3 = replacement3.concat(text.substring(matchEnd));
+                
+                const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length - (textarea.value.length - textarea.selectionStart) + 1;
+
+                if (is_debugging) {
+                    console.log(`REGEX match \n text=${text} \n str_to_match_start=${text.substring(0, match.index)} \n matchedtext=${text.substring(match.index, matchEnd)} \n barPos3=${barPos3} \n replacement3=${replacement3} \n cursor3=${cursor3} \n delstartoffset = ${-(text.length - match.index - 1)}`);
+                }
+
+
+                const blockUUID3 = getBlockUUID(e.target);
+
+                //await updateText(textarea, blockUUID3, barPos3 < 0 ? `${replacement3}` : `${replacement3}`, -(text.length - match.index - 1), 0, cursor3);
+                await updateText(textarea, blockUUID3, replacement3 + textarea.value.substring(textarea.selectionStart), -(text.length - match.index + 1), 0, cursor3);
+
+                return true;
+            }
         }
     }
-    return false;
+
+    for (const { trigger, repl } of immediateRules) {
+        // to be filled later
+        return false;
+    }
 }
 
 async function handlePairs(textarea, e) {
@@ -207,35 +333,35 @@ async function handlePairs(textarea, e) {
     const nextChar = text[textarea.selectionStart];
     const prevChar = text[textarea.selectionStart - 2];
 
-	const prevText = text.substring(0, textarea.selectionStart);
-	
+    const prevText = text.substring(0, textarea.selectionStart);
+
     if (char === "$") {
         const blockUUID = getBlockUUID(e.target);
-		if (!isInLatex(prevText) && nextChar === "$") { // If the case is "$abc@$" where @ is the position of cursor, move cursor out of the dollar.
-			const replacement = "".concat(text.substring(textarea.selectionStart))
-			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
-			return true; // Move cursor out of latex env.
+        if (!isInLatex(prevText) && nextChar === "$") { // If the case is "$abc@$" where @ is the position of cursor, move cursor out of the dollar.
+            const replacement = "".concat(text.substring(textarea.selectionStart))
+            await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+            return true; // Move cursor out of latex env.
             // NOTE : works only for single dollar.
-		}
-		if (user_settings.enableDollarBracket) { // bracket behavior: wrap the selected text with dollar
-			const middle_str = selectedText;
-			const trim_left = middle_str.trimStart();
-			const trim_right = trim_left.trimEnd(); // Remove suffix space
-			const l_dollar = middle_str !== trim_left ? " $" : "$";
-			const r_dollar = trim_left !== trim_right ? "$ " : "$";
-			const replacement = l_dollar + trim_right + r_dollar + text.substring(textarea.selectionStart);
+        }
+        if (user_settings.enableDollarBracket) { // bracket behavior: wrap the selected text with dollar
+            const middle_str = selectedText;
+            const trim_left = middle_str.trimStart();
+            const trim_right = trim_left.trimEnd(); // Remove suffix space
+            const l_dollar = middle_str !== trim_left ? " $" : "$";
+            const r_dollar = trim_left !== trim_right ? "$ " : "$";
+            const replacement = l_dollar + trim_right + r_dollar + text.substring(textarea.selectionStart);
 
-            cursor_offset = -(text.length-textarea.selectionStart)
-            if(selectedText.length == 0){
+            cursor_offset = -(text.length - textarea.selectionStart)
+            if (selectedText.length == 0) {
                 cursor_offset = cursor_offset - 1; // If no text is selected, cursor should be placed between the dollar signs.
             }
 
-			await updateText(textarea, blockUUID, replacement, -1, 1, cursor_offset);
-		}
+            await updateText(textarea, blockUUID, replacement, -1, 1, cursor_offset);
+        }
         else { // simply replace the selected text.
-			const replacement = "$$" + text.substring(textarea.selectionStart);
-			await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
-		}
+            const replacement = "$$" + text.substring(textarea.selectionStart);
+            await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
+        }
         return true;
     }
 
@@ -269,32 +395,6 @@ async function handlePairs(textarea, e) {
     return false;
 }
 
-
-function getChar(c) {
-    switch (c) {
-        case "“":
-            return "”";
-        case "‘":
-            return "’";
-        default:
-            return c;
-    }
-}
-function getOpenPosition(c) {
-    switch (c) {
-        case "”":
-            return PairOpenChars.indexOf("“");
-        case "’":
-            return PairOpenChars.indexOf("‘");
-        default:
-            return PairOpenChars.indexOf(c);
-    }
-}
-
-
-function getBlockUUID(el) {
-    return el.id.replace(/^edit-block-[0-9]+-/, "");
-}
 
 
 async function updateText(textarea, blockUUID, text, delStartOffset = 0, delEndOffset = 0, cursorOffset = 0, numWrapChars = 1) {
@@ -332,55 +432,6 @@ async function updateText(textarea, blockUUID, text, delStartOffset = 0, delEndO
 }
 
 
-function findBarPos(str) {
-    for (let i = str.length - 1; i >= 0; i--) {
-        if (str[i] === "@") {
-            return i-1;
-        }
-    }
-    return -1;
-}
-
-async function getUserRules() {
-    // const settings = logseq.settings;
-    const file = await fetch('./snippets.json')
-    var config;
-
-    if (file.ok) { // if HTTP-status is 200-299
-        config = await file.json();
-    } else {
-        console.error("HTTP-Error: ", file.status);
-        return [];
-    }
-
-    if(is_debugging){
-        console.log("config", config.regex_rules);
-    }
-
-    const ret = []; // It initializes an empty array ret to store the parsed rules.
-
-    // Read triggers and replacements from settings.latex_snippets, and store to the ret array.W
-
-    for (const group of Object.keys(config.regex_rules)){
-
-        for(let i = 0; i < config.regex_rules[group].length; i++){
-            let rule = config.regex_rules[group][i];
-    
-            ret.push({
-                trigger: new RegExp(`${rule.trigger}$`),
-                type: TRIGGER_REGEX,
-                repl: rule.replacement
-            });
-        }
-
-        console.log(`Group ${group} loaded`);
-    }
-
-
-
-    return ret;
-}
-
 async function main() {
     await setup({
         builtinTranslations: {
@@ -391,47 +442,53 @@ async function main() {
     init();
     // reloadUserRules();
 
-    if(is_debugging){
+    if (is_debugging) {
         console.log("init");
     }
 
-    
+
     user_settings = logseq.useSettingsSchema([
-		{
+        {
             key: "enableDollarBracket",
             type: "boolean",
             default: true,
             description: t("Enable: Wrap selected text with dollars, when dollar is typed.")
         },
-		{
+        {
             key: "enableVerticalLineBracket",
             type: "boolean",
             default: false,
             description: t("Enable: In latex environment, wrap selected text with vertical line \"|\", when it is typed.")
-        }
+        },
+        {
+            key: "enableDeleteBlankAfterMatch",
+            type: "boolean",
+            default: true,
+            description: t("Enable: Delete the typed blank space in inline math after matching")
+        },
     ]).settings;
 
     const settingsOff = logseq.onSettingsChanged(reloadUserRules);
-    
+
 
     logseq.App.registerCommandPalette(
         {
-        key: "reload-latex-snippets",
-        label: t("Reload snippets from the snippets.json")
-    }, async ()=>{
-        await reloadUserRules();
-        await logseq.UI.showMsg(t("Latex snippets reloaded."));
-    });
+            key: "reload-latex-snippets",
+            label: t("Reload snippets from the snippets.json")
+        }, async () => {
+            await reloadUserRules();
+            await logseq.UI.showMsg(t("Latex snippets reloaded."));
+        });
 
     logseq.App.registerCommandPalette(
         {
-        key: "open-snippets.json",
-        label: t("Open the config file for snippets in external editor")
-    }, async ()=>{
-        window.open("snippets.json");
-        // await reloadUserRules();
-        // await logseq.UI.showMsg(t("Latex snippets reloaded."));
-    });
+            key: "open-snippets.json",
+            label: t("Open the config file for snippets in external editor")
+        }, async () => {
+            window.open("snippets.json");
+            // await reloadUserRules();
+            // await logseq.UI.showMsg(t("Latex snippets reloaded."));
+        });
 
     logseq.Editor.registerSlashCommand(
         "reload latex snippets",
@@ -451,49 +508,15 @@ async function main() {
     );
 
 
-    
+
     logseq.beforeunload(() => {
         settingsOff();
         cleanUp();
     });
-   
+
     console.log("#smart-typing loaded");
 }
 
-function isInLatex(str) {
-    // The editor uses markdown format. Given the text before the cursor (str), decide whether the cursor is currently in latex mode.
 
-    // First, decide whether the cursor is in displaymath latex block, i.e. enclosed in $$...$$.
-    const regex_display_boundary = /\$\$/gm; // Regex pattern to match $$. 
-    const matches = str.match(regex_display_boundary);
-    if (matches && matches.length % 2 === 1) {
-        // If there are an odd number of matches, it means the cursor is inside a latex expression
-
-        return true;
-    }
-    str = str.replaceAll(regex_display_boundary, "");
-
-    // Then, decide whether the cursor is in inline math mode, i.e. enclosed in $...$.
-
-    // Construct Regex pattern to match $...$ and remove them from str.
-    const regex_inline = /\$(?![\s])([\s\S]+?)(?<![\s])\$/gm; // Regex pattern to match $...$.
-
-    // Remove all matched inline latex
-    str = str.replaceAll(regex_inline, "");
-
-
-    const regex_inline_notend = /\$(?![\s])[\s\S]+$/; // Regex pattern to match $... at the end of the string.
-
-    const matches_inline_notend = str.match(regex_inline_notend);
-
-    if (matches_inline_notend) {
-        // If there are an odd number of matches, it means the cursor is inside a latex expression
-
-        return true;
-    }
-
-    return false;
-
-}
 
 logseq.ready(main).catch(console.error);
