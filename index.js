@@ -414,13 +414,43 @@ async function main() {
     const settingsOff = logseq.onSettingsChanged(reloadUserRules);
     
 
-    logseq.App.registerCommandPalette({
+    logseq.App.registerCommandPalette(
+        {
         key: "reload-latex-snippets",
         label: t("Reload snippets from the snippets.json")
     }, async ()=>{
         await reloadUserRules();
         await logseq.UI.showMsg(t("Latex snippets reloaded."));
     });
+
+    logseq.App.registerCommandPalette(
+        {
+        key: "open-snippets.json",
+        label: t("Open the config file for snippets in external editor")
+    }, async ()=>{
+        window.open("snippets.json");
+        // await reloadUserRules();
+        // await logseq.UI.showMsg(t("Latex snippets reloaded."));
+    });
+
+    logseq.Editor.registerSlashCommand(
+        "reload latex snippets",
+        async () => {
+            await reloadUserRules();
+            await logseq.UI.showMsg(t("Latex snippets reloaded."));
+        }
+    );
+
+    logseq.Editor.registerSlashCommand(
+        "open snippets.json",
+        async () => {
+            window.open("snippets.json");
+            //await reloadUserRules();
+            //await logseq.UI.showMsg(t("Latex snippets reloaded."));
+        }
+    );
+
+
     
     logseq.beforeunload(() => {
         settingsOff();
