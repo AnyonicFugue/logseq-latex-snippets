@@ -358,8 +358,9 @@ async function handleSpecialKeys(textarea, e) {
 
             await updateText(textarea, blockUUID, replacement, -1, 1, cursor_offset);
         }
-        if(user_settings.newLineForDisplayMath && nextChar === "$" && prevChar === `$` && text[textarea.selectionStart - 2] !== "\n"){  // Automatically add a new line after typing $$$$
-            const replacement = "\n$$ $".concat(text.substring(textarea.selectionStart))
+        if(user_settings.newLineForDisplayMath && nextChar === "$" && prevChar === `$` && text[textarea.selectionStart - 3] !== "\n"){  // Automatically add a new line after typing $$$$
+            console.log(`${text[textarea.selectionStart - 3]}, ${text[textarea.selectionStart - 2]}, ${text[textarea.selectionStart-1]}`);
+            const replacement = "\n$$$".concat(text.substring(textarea.selectionStart))
             await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 3);
         }
         else { // simply replace the selected text.
