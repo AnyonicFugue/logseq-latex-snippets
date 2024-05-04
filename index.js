@@ -77,7 +77,7 @@ let selectedText = "";
 /* 
 * The selected text is temperarily stored here.
 * It is updated in callback function beforeInputHandler; when user types, the selected words will be replaced due to logseq.
-* So here is a copy of that deleted words, e.g. to enable bracket behavior of dollar symbols. See function handlePairs for example.
+* So here is a copy of that deleted words, e.g. to enable bracket behavior of dollar symbols. See function handleSpecialKeys for example.
 */
 
 
@@ -234,7 +234,7 @@ async function inputHandler(e) {
 
     const textarea = e.target;
 
-    await handleRules(textarea, e) || await handlePairs(textarea, e);
+    await handleRules(textarea, e) || await handleSpecialKeys(textarea, e);
 }
 
 async function beforeInputHandler(e) {
@@ -320,7 +320,7 @@ async function handleRules(textarea, e) {
     }
 }
 
-async function handlePairs(textarea, e) {
+async function handleSpecialKeys(textarea, e) {
     if (e.data.length > 1) return false;  // If the input data (e.data) is more than one character, it returns false immediately.
 
     // Get the character from the input data and its position in PairOpenChars (if it exists).
@@ -357,6 +357,10 @@ async function handlePairs(textarea, e) {
             }
 
             await updateText(textarea, blockUUID, replacement, -1, 1, cursor_offset);
+        }
+        if(user_settings.newLineForDisplayMath && nextChar === "$" && prevChar === `$` && text[textarea.selectionStart - 2] !== "\n"){  // Automatically add a new line after typing $$$$
+            const replacement = "\n$$ $".concat(text.substring(textarea.selectionStart))
+            await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 3);
         }
         else { // simply replace the selected text.
             const replacement = "$$" + text.substring(textarea.selectionStart);
@@ -466,6 +470,12 @@ async function main() {
             default: true,
             description: t("Enable: Delete the typed blank space in inline math after matching")
         },
+        {
+            key: "newLineForDisplayMath",
+            type: "boolean",
+            default: true,
+            description: t("Enable: Automatically add a new line after typing $$$$.")
+        }
     ]).settings;
 
     const settingsOff = logseq.onSettingsChanged(reloadUserRules);
