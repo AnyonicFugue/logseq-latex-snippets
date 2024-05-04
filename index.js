@@ -224,7 +224,13 @@ async function handlePairs(textarea, e) {
 			const l_dollar = middle_str !== trim_left ? " $" : "$";
 			const r_dollar = trim_left !== trim_right ? "$ " : "$";
 			const replacement = l_dollar + trim_right + r_dollar + text.substring(textarea.selectionStart);
-			await updateText(textarea, blockUUID, replacement, -1, 1, -(text.length-textarea.selectionStart));
+
+            cursor_offset = -(text.length-textarea.selectionStart)
+            if(selectedText.length == 0){
+                cursor_offset = cursor_offset - 1; // If no text is selected, cursor should be placed between the dollar signs.
+            }
+
+			await updateText(textarea, blockUUID, replacement, -1, 1, cursor_offset);
 		}
         else { // simply replace the selected text.
 			const replacement = "$$" + text.substring(textarea.selectionStart);
