@@ -281,22 +281,22 @@ async function handleRules(textarea, e) {
 
                 let replacement3 = regexRepl.replace('@', ''); // Remove the cursor symbol '@' from the replacement string.
 
-                if(latex_mode === IN_DISPLAYMATH) {
-                    if((replacement3.slice(-1) !== " ") && (barPos3 == replacement3.length - 1)){
+                if (latex_mode === IN_DISPLAYMATH) {
+                    if ((replacement3.slice(-1) !== " ") && (barPos3 == replacement3.length - 1)) {
                         replacement3 = replacement3.concat(' '); // Add an extra blank after the replacing sign, since in displaymath it is likely that the formula is very long.
                         barPos3 = barPos3 + 1;
                     }
                 }
 
-                if(!(user_settings.enableDeleteBlankAfterMatch) & latex_mode === IN_INLINEMATH) {
-                    if((replacement3.slice(-1) !== " ") && (barPos3 == replacement3.length - 1)){
+                if (!(user_settings.enableDeleteBlankAfterMatch) & latex_mode === IN_INLINEMATH) {
+                    if ((replacement3.slice(-1) !== " ") && (barPos3 == replacement3.length - 1)) {
                         replacement3 = replacement3.concat(' '); // Add an extra blank after the replacing sign, since in displaymath it is likely that the formula is very long.
                         barPos3 = barPos3 + 1;
                     }
                 }
 
                 replacement3 = replacement3.concat(text.substring(matchEnd));
-                
+
                 const cursor3 = barPos3 < 0 ? 0 : barPos3 - replacement3.length - (textarea.value.length - textarea.selectionStart) + 1;
 
                 if (is_debugging) {
@@ -343,6 +343,20 @@ async function handleSpecialKeys(textarea, e) {
             return true; // Move cursor out of latex env.
             // NOTE : works only for single dollar.
         }
+
+        if (nextChar === "$" && prevChar === `$` && user_settings.newLineForDisplayMath && textarea.selectionStart === textarea.selectionEnd && text[textarea.selectionStart - 3] !== "\n") {  // Automatically add a new line after typing $$$$
+            if(textarea.selectionStart == 2){ // No text before the dollar signs
+                const replacement = "$$\n\n$".concat(text.substring(textarea.selectionStart))
+                await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 3);
+                return true;
+            }
+            
+            // console.log(`${text[textarea.selectionStart - 3]}, ${text[textarea.selectionStart - 2]}, ${text[textarea.selectionStart - 1]}`);
+            const replacement = "\n$$\n\n$".concat(text.substring(textarea.selectionStart))
+            await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 4);
+            return true;
+        }
+
         if (user_settings.enableDollarBracket) { // bracket behavior: wrap the selected text with dollar
             const middle_str = selectedText;
             const trim_left = middle_str.trimStart();
@@ -358,11 +372,7 @@ async function handleSpecialKeys(textarea, e) {
 
             await updateText(textarea, blockUUID, replacement, -1, 1, cursor_offset);
         }
-        if(user_settings.newLineForDisplayMath && nextChar === "$" && prevChar === `$` && text[textarea.selectionStart - 3] !== "\n"){  // Automatically add a new line after typing $$$$
-            console.log(`${text[textarea.selectionStart - 3]}, ${text[textarea.selectionStart - 2]}, ${text[textarea.selectionStart-1]}`);
-            const replacement = "\n$$$".concat(text.substring(textarea.selectionStart))
-            await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 3);
-        }
+
         else { // simply replace the selected text.
             const replacement = "$$" + text.substring(textarea.selectionStart);
             await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
