@@ -17,7 +17,7 @@ let translations = {};
 
 let user_settings = {};
 /*
-* The user's settings. E.g. : if (user_settings.enableDollarBracket) { ... }
+* The user's settings. E.g. : if (user_settings.wrapwithDollarBracket) { ... }
 */
 
 async function setup({ defaultLocale = DEFAULT_LOCALE, builtinTranslations, }) {
@@ -64,6 +64,7 @@ const TRIGGER_IMMEDIATE = 1;
 const TRIGGER_REGEX = 4;
 const IN_INLINEMATH = 7;
 const IN_DISPLAYMATH = 10;
+const NOT_IN_MATH = -1;
 const PairOpenChars = '{([';
 const PairCloseChars = '})]';
 
@@ -128,10 +129,18 @@ async function getUserRules() {
         for (let i = 0; i < config.regex_rules[group].length; i++) {
             let rule = config.regex_rules[group][i];
 
-            ret.push({
-                trigger: new RegExp(`${rule.trigger}$`),
-                repl: rule.replacement
-            });
+            if(user_settings.caseInsensitive){
+                ret.push({
+                    trigger: new RegExp(`${rule.trigger}$`,"i"), // The i flag at the end would make the regex case-insensitive.
+                    repl: rule.replacement
+                });
+            } 
+            else {
+                ret.push({
+                    trigger: new RegExp(`${rule.trigger}$`),
+                    repl: rule.replacement
+                });
+            }
         }
 
         console.log(`Group ${group} loaded`);
@@ -224,8 +233,7 @@ function isInLatex(str) {
         return IN_INLINEMATH;
     }
 
-    return -1;
-
+    return NOT_IN_MATH;
 }
 
 
@@ -281,14 +289,13 @@ async function handleRules(textarea, e) {
 
                 let replacement3 = regexRepl.replace('@', ''); // Remove the cursor symbol '@' from the replacement string.
 
-                if (latex_mode === IN_DISPLAYMATH) {
+                if (!(user_settings.DeleteBlankAfterMatchInline) & latex_mode === IN_INLINEMATH) {
                     if ((replacement3.slice(-1) !== " ") && (barPos3 == replacement3.length - 1)) {
                         replacement3 = replacement3.concat(' '); // Add an extra blank after the replacing sign, since in displaymath it is likely that the formula is very long.
                         barPos3 = barPos3 + 1;
                     }
                 }
-
-                if (!(user_settings.enableDeleteBlankAfterMatch) & latex_mode === IN_INLINEMATH) {
+                if (!(user_settings.DeleteBlankAfterMatchDisplay) & latex_mode === IN_DISPLAYMATH) {
                     if ((replacement3.slice(-1) !== " ") && (barPos3 == replacement3.length - 1)) {
                         replacement3 = replacement3.concat(' '); // Add an extra blank after the replacing sign, since in displaymath it is likely that the formula is very long.
                         barPos3 = barPos3 + 1;
@@ -337,27 +344,35 @@ async function handleSpecialKeys(textarea, e) {
 
     if (char === "$") {
         const blockUUID = getBlockUUID(e.target);
-        if (!isInLatex(prevText) && nextChar === "$") { // If the case is "$abc@$" where @ is the position of cursor, move cursor out of the dollar.
+        if ((isInLatex(prevText) === NOT_IN_MATH) && nextChar === "$") { // If the case is "$abc@$" where @ is the position of cursor, move cursor out of the dollar.
             const replacement = "".concat(text.substring(textarea.selectionStart))
             await updateText(textarea, blockUUID, replacement, -1, 1, -replacement.length + 1);
             return true; // Move cursor out of latex env.
             // NOTE : works only for single dollar.
         }
 
-        if (nextChar === "$" && prevChar === `$` && user_settings.newLineForDisplayMath && textarea.selectionStart === textarea.selectionEnd && text[textarea.selectionStart - 3] !== "\n") {  // Automatically add a new line after typing $$$$
+        if (nextChar === "$" && prevChar === `$` && user_settings.newLineForDisplayMath && textarea.selectionStart === textarea.selectionEnd) {  // Automatically add a new line after typing $$$$
             if(textarea.selectionStart == 2){ // No text before the dollar signs
                 const replacement = "$$\n\n$".concat(text.substring(textarea.selectionStart))
                 await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 3);
                 return true;
             }
             
+            if(text[textarea.selectionStart - 3] !== "\n") // If there is no new line before the dollar signs
+            {
+                const replacement = "\n$$\n\n$".concat(text.substring(textarea.selectionStart))
+                await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 4);
+                return true;
+            }
+            else {
             // console.log(`${text[textarea.selectionStart - 3]}, ${text[textarea.selectionStart - 2]}, ${text[textarea.selectionStart - 1]}`);
-            const replacement = "\n$$\n\n$".concat(text.substring(textarea.selectionStart))
-            await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 4);
-            return true;
+                const replacement = "$$\n\n$".concat(text.substring(textarea.selectionStart))
+                await updateText(textarea, blockUUID, replacement, -2, 2, -replacement.length + 3);
+                return true;
+            }
         }
 
-        if (user_settings.enableDollarBracket) { // bracket behavior: wrap the selected text with dollar
+        if (user_settings.wrapwithDollarBracket) { // bracket behavior: wrap the selected text with dollar
             const middle_str = selectedText;
             const trim_left = middle_str.trimStart();
             const trim_right = trim_left.trimEnd(); // Remove suffix space
@@ -380,8 +395,8 @@ async function handleSpecialKeys(textarea, e) {
         return true;
     }
 
-    if (user_settings.enableVerticalLineBracket) { // bracket behavior: wrap the selected text with vertical line "|"
-        if (char === "|" && prevChar !== "\\" && isInLatex(prevText)) {
+    if (user_settings.VerticalLineBracket) { // bracket behavior: wrap the selected text with vertical line "|"
+        if (char === "|" && prevChar !== "\\" && !(isInLatex(prevText) === NOT_IN_MATH )) {
             const blockUUID = getBlockUUID(e.target);
             if (nextChar === "|") { // If the case is "abc@|" where @ is the position of cursor, move cursor out of the vertical line.
                 const replacement = "".concat(text.substring(textarea.selectionStart))
@@ -464,22 +479,34 @@ async function main() {
 
     user_settings = logseq.useSettingsSchema([
         {
-            key: "enableDollarBracket",
+            key: "wrapwithDollarBracket",
             type: "boolean",
             default: true,
             description: t("Enable: Wrap selected text with dollars, when dollar is typed.")
         },
         {
-            key: "enableVerticalLineBracket",
+            key: "caseInsensitive", // Matching is case insensitive
+            type: "boolean",
+            default: true,
+            description: t("Enable: Matching is case-insensitve.")
+        },
+        {
+            key: "VerticalLineBracket",
             type: "boolean",
             default: false,
             description: t("Enable: In latex environment, wrap selected text with vertical line \"|\", when it is typed.")
         },
         {
-            key: "enableDeleteBlankAfterMatch",
+            key: "DeleteBlankAfterMatchInline",
             type: "boolean",
             default: true,
             description: t("Enable: Delete the typed blank space in inline math after matching")
+        },
+        {
+            key: "DeleteBlankAfterMatchDisplay",
+            type: "boolean",
+            default: false,
+            description: t("Enable: Delete the typed blank space in display math after matching")
         },
         {
             key: "newLineForDisplayMath",
