@@ -4,7 +4,9 @@ Support for snippets in inline math and display math.
 
 ## Demo
 
-![](./Demo.mp4)
+https://github.com/user-attachments/assets/eaaa2f2b-76db-406f-915f-64a267bfe122
+
+
 
 ## Functionalities
 
