@@ -4,15 +4,14 @@
     "main": "./index.html",
     "logseq": {
         "id": "logseq-latex-snippets",
-        "icon": "./icon.jpg"
+        "icon": "./icon.png"
     },
     "scripts": {
         "build": "rollup -c",
         "clean": "rm -rf dist"
     },
     "dependencies": {
-        "@logseq/libs": "^0.0.14",
-        "date-fns": "^2.29.3",
+        "@logseq/libs": "^0.0.17",
         "logseq-l10n": "^0.2.0"
     },
     "devDependencies": {

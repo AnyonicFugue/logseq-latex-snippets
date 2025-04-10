@@ -3,9 +3,7 @@
 var commonjsGlobal = typeof globalThis !== 'undefined' ? globalThis : typeof window !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
 
-
-const is_debugging = true;
-
+const is_debugging = false;
 
 
 /*! For license information please see lsplugin.user.js.LICENSE.txt */
@@ -117,17 +115,17 @@ async function getUserRules() {
     }
 
     if (is_debugging) {
-        console.log("config", config.regex_rules);
+        console.log("config", config);
     }
 
     const ret = []; // It initializes an empty array ret to store the parsed rules.
 
     // Read triggers and replacements from settings.latex_snippets, and store to the ret array.W
 
-    for (const group of Object.keys(config.regex_rules)) {
+    for (const group of Object.keys(config)) {
 
-        for (let i = 0; i < config.regex_rules[group].length; i++) {
-            let rule = config.regex_rules[group][i];
+        for (let i = 0; i < config[group].length; i++) {
+            let rule = config[group][i];
 
             if(user_settings.caseInsensitive){
                 ret.push({
