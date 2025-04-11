@@ -129,13 +129,13 @@ async function getUserRules() {
 
             if(user_settings.caseInsensitive){
                 ret.push({
-                    trigger: new RegExp(`${rule.trigger}$`,"i"), // The i flag at the end would make the regex case-insensitive.
+                    trigger: new RegExp(`${rule.match}$`,"i"), // The i flag at the end would make the regex case-insensitive.
                     repl: rule.replacement
                 });
             } 
             else {
                 ret.push({
-                    trigger: new RegExp(`${rule.trigger}$`),
+                    trigger: new RegExp(`${rule.match}$`),
                     repl: rule.replacement
                 });
             }
