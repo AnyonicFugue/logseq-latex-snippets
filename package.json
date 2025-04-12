@@ -1,7 +1,7 @@
 {
     "name": "logseq-latex-snippets",
     "version": "v0.1",
-    "main": "./index.html",
+    "main": "./src/index.html",
     "logseq": {
         "id": "logseq-latex-snippets",
         "icon": "./icon.png"
