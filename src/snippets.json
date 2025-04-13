@@ -1,0 +1,23 @@
+{
+	"fonts": [
+		{
+		"match": "(?<![a-zA-Z])(cal|scr|frak|bb|bf|rm)([a-zA-Z0-9]+)",
+		"replacement": "\\math$1{$2}@"
+		}
+    ],
+
+    "operators": [
+		{
+		"match": "(?<![\\\\a-zA-Z])op([a-zA-Z]+)",
+		"replacement": "\\operatorname{$1} @"
+		},
+		{
+		"match": "(?<![\\\\a-zA-Z])hom",
+		"replacement": "\\operatorname{Hom}(@)"
+		},
+		{
+		"match": "(?<![\\\\a-zA-Z])tr(?!})",
+		"replacement": "\\operatorname{Tr} @"
+		}
+    ]
+}
