@@ -79,7 +79,6 @@ let selectedText = "";
 * So here is a copy of that deleted words, e.g. to enable bracket behavior of dollar symbols. See function handleSpecialKeys for example.
 */
 
-
 function init() { // sets up a function that will be called whenever the specified event happens (e.g. keydown, beforeinput)
     const appContainer = parent.document.getElementById("app-container");
 
@@ -529,7 +528,7 @@ async function main() {
     logseq.App.registerCommandPalette(
         {
             key: "open-snippets.json",
-            label: t("Open the config file for snippets in external editor")
+            label: t("Open snippets.json in external editor")
         }, async () => {
             window.open("snippets.json");
             // await reloadUserRules();
