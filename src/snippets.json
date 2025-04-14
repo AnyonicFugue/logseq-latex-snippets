@@ -19,5 +19,12 @@
 		"match": "(?<![\\\\a-zA-Z])tr(?!})",
 		"replacement": "\\operatorname{Tr} @"
 		}
-    ]
+    ],
+	
+	"misc": [
+		{
+            "match": "(?<![a-zA-Z])(align)",
+            "replacement": "\\begin{aligned}\n@\n\\end{aligned}"
+        }
+	]
 }
