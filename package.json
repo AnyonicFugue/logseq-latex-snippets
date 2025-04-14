@@ -1,13 +1,14 @@
 {
     "name": "logseq-latex-snippets",
-    "version": "v0.1",
+    "version": "v0.1.0",
     "main": "./src/index.html",
     "logseq": {
         "id": "logseq-latex-snippets",
         "icon": "./icon.png"
     },
+    
     "scripts": {
-        "build": "rollup -c",
+        "build": "terser src/index.js --compress --mangle --output index.js",
         "clean": "rm -rf dist"
     },
     "dependencies": {
@@ -15,17 +16,10 @@
         "logseq-l10n": "^0.2.0"
     },
     "devDependencies": {
-        "@rollup/plugin-alias": "^3.1.9",
-        "@rollup/plugin-commonjs": "^23.0.2",
-        "@rollup/plugin-html": "^0.2.4",
-        "@rollup/plugin-json": "^4.1.0",
-        "@rollup/plugin-node-resolve": "^13.3.0",
-        "@rollup/plugin-replace": "^5.0.0",
         "@swc/core": "^1.2.187",
-        "rollup": "^2.74.1",
-        "rollup-plugin-swc3": "^0.3.0"
+        "terser": "^5.15.0"
     },
-    "repo": "AnyonicFugue/logseq-latex-snippets",
+    "repository": "AnyonicFugue/logseq-latex-snippets",
     "title": "Latex Snippets",
     "author": "AnyonicFugue and GJC",
     "description": "Regex snippets in latex.",
