@@ -1,30 +1,265 @@
 {
-	"fonts": [
-		{
-		"match": "(?<![a-zA-Z])(cal|scr|frak|bb|bf|rm)([a-zA-Z0-9]+)",
-		"replacement": "\\math$1{$2}@"
-		}
+  "fonts": [
+    {
+      "match": "(?<![a-zA-Z])(cal|scr|frak|bb|bf|rm)(.+)",
+      "replacement": "\\math$1{$2}@"
+    },
+	  {
+        "match": "(?<![\\\\a-zA-Z])pmb(.+)",
+        "replacement": "\\pmb{$1}@"
+    }
     ],
 
-    "operators": [
-		{
-		"match": "(?<![\\\\a-zA-Z])op([a-zA-Z]+)",
-		"replacement": "\\operatorname{$1} @"
-		},
-		{
-		"match": "(?<![\\\\a-zA-Z])hom",
-		"replacement": "\\operatorname{Hom}(@)"
-		},
-		{
-		"match": "(?<![\\\\a-zA-Z])tr(?!})",
-		"replacement": "\\operatorname{Tr} @"
-		}
+    "category theory": [
+      {
+        "match": "(?<![\\\\a-zA-Z])(overto)",
+        "replacement": "\\overset{@}{\\to} "
+      }
     ],
 	
-	"misc": [
+	"separator": [
+      {
+        "match": "\\|\\|",
+        "replacement": " \\ \\|\\ @"
+      }
+	],
+
+    "operators": [
+      {
+        "match": "(?<![\\\\a-zA-Z])op([^\\{\\}]+)",
+        "replacement": "\\operatorname{$1} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])op",
+        "replacement": "\\operatorname{@} "
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])(hom|Hom)",
+        "replacement": "\\operatorname{Hom}(@)"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])(tr|Tr)(?!})",
+        "replacement": "\\operatorname{Tr} @"
+      },
+      {
+        "match": "\\\\(tr|Tr)(?!})",
+        "replacement": "\\operatorname{Tr} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])int(.+)to(.+)",
+        "replacement": "\\int_{$1}^{$2} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])int(.+)",
+        "replacement": "\\int_{$1} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])int",
+        "replacement": "\\int @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])lim",
+        "replacement": "\\lim_{n \\to \\infty} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])sup(.+)",
+        "replacement": "\\sup_{$1} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])sup",
+        "replacement": "\\sup @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])inf(.+)",
+        "replacement": "\\inf_{$1} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])inf",
+        "replacement": "\\inf @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])max(.+)",
+        "replacement": "\\max_{$1} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])max",
+        "replacement": "\\max @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])min(.+)",
+        "replacement": "\\min_{$1} @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])min",
+        "replacement": "\\min @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])sin",
+        "replacement": "\\sin @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])cos",
+        "replacement": "\\cos @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])par",
+        "replacement": "\\partial @"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])fr",
+        "replacement": "\\frac{@}{}"
+      }
+    ],
+
+    "overset": [
+      {
+        "match": "(?<![\\\\a-zA-Z])hat(.+)",
+        "replacement": "\\hat{$1}@"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])tilde(.+)",
+        "replacement": "\\tilde{$1}@"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])bar(.+)",
+        "replacement": "\\bar{$1}@"
+      }
+    ],
+
+    "misc": [
+      {
+        "match": "(?<![\\\\a-zA-Z])(ot)",
+        "replacement": "\\otimes @"
+      },
+      {
+        "match": "\\\\ot",
+        "replacement": "\\otimes @"
+      },
+      {
+        "match": "\\\\ll",
+        "replacement": "\\llbracket @"
+      },
+      {
+        "match": "\\\\rr",
+        "replacement": "\\rrbracket@"
+      },
+      {
+        "match": "llrr",
+        "replacement": "\\llbracket @\\rrbracket"
+      },
+      {
+        "match": "Z([0-9]|n|p)",
+        "replacement": "Z_{$1}@"
+      },
+      {
+        "match": "(?<![{a-zA-Z])(align)",
+        "replacement": "\n\\begin{aligned}\n@\n\\end{aligned}\n"
+      },
+      {
+        "match": "(\\\\|(?<![{a-zA-Z]))(cases)",
+        "replacement": "\\begin{cases} @ \\end{cases}"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])(matrix\\[)",
+        "replacement": "\n\\left[\\begin{matrix}\n@\n\\end{matrix}\\right"
+      },
+      {
+        "match": "(?<![\\\\a-zA-Z])(matrix\\()",
+        "replacement": "\n\\left(\\begin{matrix}\n@\n\\end{matrix}\\right"
+      },
+      {
+        "match": "(\\\\|(?<![a-zA-Z]))leri\\[",
+        "replacement": "\\left[ @ \\right"
+      },
+      {
+        "match": "(\\\\|(?<![a-zA-Z]))leri\\|",
+        "replacement": "\\left| @ \\right|"
+      },
+      {
+        "match": "(\\\\|(?<![a-zA-Z]))leri\\(",
+        "replacement": "\\left( @ \\right"
+      },
+      {
+        "match": "(\\\\|(?<![a-zA-Z]))leri\\{",
+        "replacement": "\\left\\{ @ \\right\\"
+      }
+    ],
+	
+	"arrows":[
+      {
+        "match": "\\\\?<->",
+        "replacement": "\\leftrightarrow @"
+      },
+      {
+        "match": "\\\\?<-->",
+        "replacement": "\\longleftrightarrow @"
+      },
+      {
+        "match": "\\\\?<=>",
+        "replacement": "\\Leftrightarrow @"
+      },
+      {
+        "match": "\\\\?<==>",
+        "replacement": "\\Longleftrightarrow @"
+      },
+      {
+        "match": "\\\\?-->",
+        "replacement": "\\longrightarrow @"
+      },
+      {
+        "match": "\\\\?->",
+        "replacement": "\\rightarrow @"
+      },
+      {
+        "match": "\\\\?==>",
+        "replacement": "\\Longrightarrow @"
+      },
+      {
+        "match": "\\\\?=>",
+        "replacement": "\\Rightarrow @"
+      },
+      {
+        "match": "\\\\?<--",
+        "replacement": "\\longleftarrow @"
+      },
+      {
+        "match": "\\\\?<-",
+        "replacement": "\\leftarrow @"
+      },
+      {
+        "match": "\\\\?<==",
+        "replacement": "\\Longleftarrow @"
+      },
+      {
+        "match": "\\\\?<=",
+        "replacement": "\\Leftarrow @"
+      },
+      {
+	    "match": "(?<![\\\\a-zA-Z])(xr)",
+	    "replacement": "\\xrightarrow{@} "
+	  }
+	],
+
+    "quantum computation": [
 		{
-            "match": "(?<![a-zA-Z])(align)",
-            "replacement": "\\begin{aligned}\n@\n\\end{aligned}"
-        }
-	]
+			"match": "\\\\>",
+			"replacement": "\\rangle@"
+		},
+		{
+			"match": "\\\\ra",
+			"replacement": "\\rangle@"
+		},
+		{
+			"match": "\\\\<",
+			"replacement": "\\langle @"
+		},
+		{
+			"match": "\\\\la",
+			"replacement": "\\langle @"
+		},
+		{
+			"match": "<(.+?)>",
+			"replacement": "\\left\\langle $1 \\right\\rangle@"
+		}
+    ]
 }
