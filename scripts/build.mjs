@@ -1,5 +1,10 @@
 import { build } from 'esbuild';
-import { mkdir, copyFile } from 'node:fs/promises';
+import { mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
+import { basename } from 'node:path';
 await mkdir('dist', { recursive: true });
-await build({ entryPoints: ['src/index.js'], bundle: true, minify: true, outfile: 'dist/index.js', platform: 'browser', target: 'chrome120' });
-await Promise.all(['index.html', 'snippets.json'].map(file => copyFile(`src/${file}`, `dist/${file}`)));
+const result = await build({ entryPoints: ['src/index.js'], bundle: true, minify: true, outdir: 'dist', entryNames: 'index-[hash]', metafile: true, platform: 'browser', target: 'chrome120' });
+const entry = Object.entries(result.metafile.outputs).find(([, output]) => output.entryPoint === 'src/index.js')?.[0];
+if (!entry) throw new Error('Build did not produce the plugin entry.');
+const html = (await readFile('src/index.html', 'utf8')).replace('./index.js', `./${basename(entry)}`);
+await writeFile('dist/index.html', html);
+await copyFile('src/snippets.json', 'dist/snippets.json');

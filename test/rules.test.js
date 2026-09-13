@@ -65,3 +65,15 @@ test('vertical bar selection and skip in math', () => {
   assert.equal(type('$abc$',1,'|',{settings},4).value,'$|abc|$');
   assert.deepEqual(type('$|x|$',3,'|',{settings}),{value:'$|x|$',cursor:4});
 });
+test('second dollar expands with no closer or host-supplied closers, preserving suffix',()=>{
+  for(const suffix of ['', '$', '$$']) {
+    assert.deepEqual(type('$'+suffix+' tail',1,'$'),{value:'$$\n\n$$ tail',cursor:3});
+  }
+  assert.deepEqual(type('text\n$',6,'$'),{value:'text\n$$\n\n$$',cursor:8});
+  assert.deepEqual(type('$',1,'$',{settings:{...DEFAULT_SETTINGS,newLineForDisplayMath:false}}),{value:'$$$$',cursor:2});
+});
+test('closing or escaped dollars and code never become a display-math opener',()=>{
+  assert.equal(type('$x$',3,'$').value.includes('\n'),false);
+  assert.equal(type('\\$',2,'$').value.includes('\n'),false);
+  assert.equal(type('`$',2,'$').value,'`$$');
+});

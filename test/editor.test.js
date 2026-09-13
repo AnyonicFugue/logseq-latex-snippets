@@ -70,3 +70,39 @@ test('failed native command restores cursor and reports failure without database
 });
 test('unload removes all event listeners',()=>{const f=fixture();f.stop();assert.equal(f.listeners.size,0);});
 test('DB code blocks in raw editing mode are left untouched',async()=>{const f=fixture({code:true});await f.type();assert.equal(f.element.value,'$fr $');assert.equal(f.edits.length,0);});
+test('two rapidly typed dollars expand even when the first pairing is still pending',async()=>{
+  const f=fixture({deferred:true});f.element.value='';f.element.setSelectionRange(0,0);
+  const first=f.type('$');await tick();const second=f.type('$');await tick();
+  f.resolveBlock();await Promise.all([first,second]);
+  assert.equal(f.element.value,'$$\n\n$$');assert.equal(f.element.selectionStart,3);
+  assert.equal(f.edits.length,1);
+});
+function pressDollar(f, extra={}) {
+  const event={target:f.element,key:'$',preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;},...extra};
+  f.listeners.get('keydown')(event);
+  return event;
+}
+function keyFixture(options={}) {
+  const f=fixture(options);
+  f.element.closest=selector=>selector==='.block-editor'?{}:{getAttribute:()=>options.native?'math':options.code?'code':null};
+  f.element.value='';f.element.setSelectionRange(0,0);
+  return f;
+}
+test('dollar keydown preempts host pairing without beforeinput or API responses',()=>{
+  const f=keyFixture({deferred:true});
+  for(const expected of ['$$','$$\n\n$$']) {
+    const event=pressDollar(f);assert.equal(event.defaultPrevented,true);assert.equal(event.stopped,true);
+    assert.equal(f.element.value,expected);
+  }
+  assert.equal(f.element.selectionStart,3);assert.equal(f.edits.length,2);assert.deepEqual(f.errors,[]);
+});
+test('keydown wraps selection and skips closing dollar without duplicating it',()=>{
+  const f=keyFixture();f.element.value='abc tail';f.element.setSelectionRange(0,3);pressDollar(f);
+  assert.equal(f.element.value,'$abc$ tail');assert.equal(f.element.selectionStart,5);
+  f.element.setSelectionRange(4,4);pressDollar(f);
+  assert.equal(f.element.value,'$abc$ tail');assert.equal(f.element.selectionStart,5);
+});
+test('dollar keydown leaves math/code blocks, IME and shortcuts to host',()=>{
+  for(const options of [{native:true},{code:true}]) assert.equal(pressDollar(keyFixture(options)).defaultPrevented,undefined);
+  for(const extra of [{isComposing:true},{keyCode:229},{ctrlKey:true},{metaKey:true}]) assert.equal(pressDollar(keyFixture(),extra).defaultPrevented,undefined);
+});

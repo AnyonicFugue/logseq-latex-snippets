@@ -1,5 +1,13 @@
 /snippets.json
+
+# Dependencies and generated build/release artifacts
 /node_modules/
 /dist/
 /release/
+/.release/
+/logseq-latex-snippets/
+/logseq-latex-snippets*.zip
+
+# Local npm logs and macOS metadata
+npm-debug.log*
 .DS_Store
