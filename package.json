@@ -1,27 +1,26 @@
 {
-    "name": "logseq-latex-snippets",
-    "version": "v0.1.0",
-    "main": "./src/index.html",
-    "logseq": {
-        "id": "logseq-latex-snippets",
-        "icon": "./icon.png"
-    },
-    
-    "scripts": {
-        "build": "terser src/index.js --compress --mangle --output index.js",
-        "clean": "rm -rf dist"
-    },
-    "dependencies": {
-        "@logseq/libs": "^0.0.17",
-        "logseq-l10n": "^0.2.0"
-    },
-    "devDependencies": {
-        "@swc/core": "^1.2.187",
-        "terser": "^5.15.0"
-    },
-    "repository": "AnyonicFugue/logseq-latex-snippets",
-    "title": "Latex Snippets",
-    "author": "AnyonicFugue and GJC",
-    "description": "Regex snippets in latex.",
-    "effect": true
+  "name": "logseq-latex-snippets",
+  "version": "0.2.0",
+  "main": "./dist/index.html",
+  "logseq": {
+    "id": "logseq-latex-snippets",
+    "icon": "./icon.png"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test",
+    "check": "npm test && npm run build"
+  },
+  "dependencies": {
+    "@logseq/libs": "0.3.4"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.9"
+  },
+  "repository": "AnyonicFugue/logseq-latex-snippets",
+  "title": "Latex Snippets",
+  "author": "AnyonicFugue and GJC",
+  "description": "Regex snippets in latex.",
+  "effect": true,
+  "type": "module"
 }

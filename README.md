@@ -1,25 +1,80 @@
 # logseq-latex-snippets
 
-Support for snippets in inline math and display math.
+在 Logseq 数学环境中按空格展开正则片段，支持光标占位、美元符号配对和选区包裹。
+
+本次更新面向 **Logseq DB 桌面版 2.0.1**，保留原有 8 组、60 条片段。
+已对照 2.0.1 官方源码，并通过规则、编辑器适配和启动加载的自动测试。
+尚未完成实际 Logseq 中的加载、撤销、保存和重开验证；旧版文件图谱保留了编辑器 ID 兼容，但未做完整回归。
+
+## 安装与构建
+
+下载构建后的 ZIP，解压后在 Logseq 插件页选择 **Load unpacked plugin / 加载未打包插件**，选择包含 `package.json` 的目录。若该入口未显示，先在插件设置中启用开发者模式。
+
+从源码使用（Node.js 20 或更新版本）：
+
+```sh
+npm ci
+npm run check
+```
+
+然后加载项目根目录。入口为 `dist/index.html`，请不要只选择 `dist`。
+SDK `@logseq/libs` 固定为 `0.3.4` 并打包到本地，不再从 CDN 动态加载。
+
+## 使用
+
+- 在行内 `$…$`、文本 `$$…$$` 或 DB 原生 Math 公式块中，输入片段后按空格。
+- 例如 `fr` → `\frac{}{}`，光标位于第一个花括号；`bbR` → `\mathbb{R}`。
+- 输入 `$` 自动配对；空美元符号对中再次输入 `$` 可创建多行显示公式。
+- DB 原生公式块按整块 LaTeX 处理，不自动添加 `$` 定界符。
+- 支持用 `$` 包裹选区；可在设置中启用数学环境内的 `|` 包裹。
+- 粘贴和中文输入法组合输入不会触发展开；转义美元符号和 Markdown 代码区域不会当作数学环境。
+- 如果等待 API 时继续输入、移动光标或切换编辑块，本次展开会放弃，保留最新输入。
+
+## 自定义片段
+
+推荐在插件设置的 `snippetsJson` 中粘贴完整 JSON。配置保存在插件设置中，不会因替换插件安装目录而丢失。
+
+```json
+{
+  "my rules": [
+    { "match": "fr", "replacement": "\\frac{@}{}" },
+    { "match": "bb([A-Za-z])", "replacement": "\\mathbb{$1}@" }
+  ]
+}
+```
+
+- 每条规则必须属于一个分组，分组名任意；按配置顺序使用第一个匹配项。
+- `match` 是正则表达式，自动限定在光标前的结尾匹配；默认忽略大小写。
+- `replacement` 支持 `$1` 等捕获组，首个 `@` 标记光标；未提供 `@` 时光标停在替换末尾。
+- 空 `snippetsJson` 使用打包的 `dist/snippets.json`；填写 `{}` 禁用所有片段。
+- 配置变化自动加载；无效 JSON/正则会显示错误并保留上次有效配置。
+- `/reload latex snippets` 或命令面板可以手动重载。
+- `/open snippets.json` 打开随包提供的 JSON 资源，是否交给外部编辑器取决于 Logseq。直接修改该文件后应重载；构建和升级会覆盖它，因此推荐使用设置。
+- 空格选项只控制额外的触发空格，不删除替换文本中明确写出的空格；光标位于模板内部时不会额外补空格。
+
+## 验证与限制
+
+`npm test` 覆盖 23 项测试：规则与光标、DB 公式块、旧/新编辑器 ID、异步竞争、IME/粘贴、卸载和配置加载。编辑器测试使用模拟 API；并非真实 Logseq 端到端测试。
+
+请在测试页面验收：
+
+1. 普通文本不展开；行内公式、`$$` 公式和原生 Math 块都可展开。
+2. `fr`、`bbR`、`int0to1`、`align` 的内容、光标和块尾文本正确。
+3. `$` 配对、连续输入第二个 `$`、跳过闭合符号、选区包裹正常。
+4. 与 Logseq 自带括号补全共存；中文输入、粘贴和快速连续输入没有误改。
+5. 展开后撤销/重做，离开块再返回，重启后内容仍正确。
+6. 修改设置、清空规则、重载和停用插件后行为正确。
+
+编辑使用 Chromium 原生 `insertText` 命令，通过宿主输入事件更新编辑状态，避免异步重写整个数据库块。该浏览器接口已弃用但仍是此桌面适配的依赖；若宿主不支持会提示错误，不会回退到整块覆盖。实际撤销粒度须在目标版本验收。
+
+本插件依赖宿主 DOM，需要 `effect: true`，不声明网页版支持。通过桌面验收后，发布到插件市场时应在市场清单中设置 `supportsDB: true`。
+
+依赖审计：SDK 0.3.4 的上游依赖包含 DOMPurify/lodash-es 的已知审计项；SDK 自带预编译 bundle，单改传递依赖版本不能证明 bundle 已修复。本次未宣称审计通过，应跟踪上游 SDK 更新。
 
 ## Demo
 
 https://github.com/user-attachments/assets/eaaa2f2b-76db-406f-915f-64a267bfe122
 
-
-
-## Functionalities
-
-- Customizable regex snippets to autocomplete latex formulas
-- Automatically pair up dollar signs
-
-## Usage
-
-- You could open the config file *snippets.json* via slash command `/open snippets.json` or command palette and write your own snippets. 
-    - Note that each snippet must be put in a group. Group names are arbitrary.
-    - "@" symbol in the replace string would be the cursor location after replacement.
-- When typing in mathmode (including displaymath and inline math) in Logseq, pressing down *blankspace* would trigger a regex replacement. 
-
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.
+MIT. See [LICENSE](./LICENSE).
