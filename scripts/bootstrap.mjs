@@ -19,7 +19,13 @@ function runNpm(args) {
   if (result.error || result.status !== 0) {
     console.error(`\nBootstrap stopped: npm ${args.join(' ')} failed.`);
     if (result.error) console.error(result.error.message);
-    console.error('Check that npm is installed with Node.js and that your network can reach the npm registry, then run bootstrap again.');
+    if (result.error) {
+      console.error('Check that npm is installed with Node.js, then run bootstrap again.');
+    } else if (args[0] === 'ci') {
+      console.error('Check the installation error above (including npm registry access), then run bootstrap again.');
+    } else {
+      console.error('Check the test or build failure above, fix it, then run bootstrap again.');
+    }
     process.exit(result.status || 1);
   }
 }
