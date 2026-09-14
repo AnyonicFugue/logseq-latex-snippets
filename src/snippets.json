@@ -1,6 +1,10 @@
 {
   "fonts": [
     {
+      "match": "(?<![\\\\a-zA-Z])bold(.+)",
+      "replacement": "\\boldsymbol{$1}@"
+    },
+    {
       "match": "(?<![a-zA-Z])(cal|scr|frak|bb|bf|rm)(.+)",
       "replacement": "\\math$1{$2}@"
     },

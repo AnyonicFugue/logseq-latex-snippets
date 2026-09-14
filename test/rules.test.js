@@ -10,8 +10,8 @@ function type(value, start, char, options = {}, end = start) {
   const result = planEdit({value, cursor, char, before, rules, ...options});
   return result ? { value: value.slice(0, result.start) + result.text + value.slice(result.end), cursor: result.cursor } : {value, cursor};
 }
-test('all 60 bundled rules compile; empty groups clear rules; invalid config is rejected', () => {
-  assert.equal(rules.length, 60);
+test('all 61 bundled rules compile; empty groups clear rules; invalid config is rejected', () => {
+  assert.equal(rules.length, 61);
   assert.deepEqual(compileRules({}), []);
   assert.deepEqual(compileRules({empty:[]}), []);
   for (const config of [null, [], {bad:{}}, {bad:[{}]}, {bad:[{match:'[', replacement:''}]}]) assert.throws(() => compileRules(config));
