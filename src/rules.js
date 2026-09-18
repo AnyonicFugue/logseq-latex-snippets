@@ -99,6 +99,5 @@ export function planEdit({ value, cursor, char, before, nativeMath = false, rule
     if (next === '|') return edit(cursor - 1, cursor, '', cursor);
     if (selected) return edit(cursor - 1, cursor, `|${selected.trim()}|`);
   }
-  if (char === '(' && !escaped && !previousContext.code && next !== ')') return edit(cursor, cursor, ')', cursor);
   return null;
 }

@@ -1,4 +1,4 @@
-import { planEdit } from './rules.js';
+import { mathContext, planEdit } from './rules.js';
 
 export function blockUUID(element) {
   const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -33,18 +33,33 @@ export function attachEditor(document, logseq, getConfig, report) {
     } finally { applying = false; }
   };
   const keydown = (event) => {
-    if (applying || disposed || event.defaultPrevented || event.key !== '$' || event.isComposing ||
+    if (applying || disposed || event.defaultPrevented || !['$', '('].includes(event.key) || event.isComposing ||
         event.keyCode === 229 || event.ctrlKey || event.metaKey || !isEditor(event.target)) return;
     const element = event.target;
     if (document.activeElement !== element) return;
-    // Logseq 2.0.1 handles dollars on window's bubbling keydown and cancels the
-    // ordinary beforeinput/input sequence. Its wrapper exposes block type without
-    // an asynchronous API round trip, so handle dollars before that host handler.
+    // Handle pairing synchronously before Logseq's bubbling keydown handler.
+    // The wrapper exposes block type without an asynchronous API round trip.
     const wrapper = element.closest('.block-content-or-editor-wrap');
     if (!wrapper) return;
     const type = wrapper.getAttribute('data-node-type');
-    if (type === 'math' || type === 'code') return;
+    if (type === 'code') return;
     const before = { value: element.value, start: element.selectionStart, end: element.selectionEnd };
+    if (event.key === '(') {
+      const left = before.value.slice(0, before.start);
+      // Logseq already pairs at the start, after newline/space/]/(, or around
+      // selections. Only fill the remaining cases; never reuse an outer closer.
+      if (event.altKey || before.start !== before.end || !left || /[\n \](]$/.test(left) ||
+          /(?:^|[^\\])(?:\\\\)*\\$/.test(left) || mathContext(left, type === 'math').code) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      generation++;
+      snapshots.delete(element);
+      try {
+        apply(element, { start: before.start, end: before.end, text: '()', cursor: before.start + 1 }, before.start);
+      } catch (error) { report(error); }
+      return;
+    }
+    if (type === 'math') return;
     const value = before.value.slice(0, before.start) + '$' + before.value.slice(before.end);
     const change = planEdit({ value, cursor: before.start + 1, char: '$', before, ...getConfig() });
     if (!change) return;
@@ -80,7 +95,8 @@ export function attachEditor(document, logseq, getConfig, report) {
     const before = snapshots.get(element);
     snapshots.delete(element);
     if (!before || event.isComposing || event.inputType !== 'insertText' || event.data !== before.char) return;
-    if (![' ', '$', '|', '('].includes(event.data)) return;
+    // Parentheses are handled synchronously on keydown, never after input.
+    if (![' ', '$', '|'].includes(event.data)) return;
     const value = element.value, cursor = element.selectionStart, uuid = blockUUID(element);
     const unchanged = () => !disposed && ticket === generation && element.isConnected &&
       document.activeElement === element && element.value === value &&

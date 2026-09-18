@@ -55,9 +55,11 @@ test('second dollar creates multiline display; native math never auto-pairs doll
   assert.deepEqual(type('$$',1,'$',{settings:{...DEFAULT_SETTINGS,newLineForDisplayMath:false}}),{value:'$$$$',cursor:2});
   assert.deepEqual(type('x',1,'$',{nativeMath:true}),{value:'x$',cursor:2});
 });
-test('parentheses do not duplicate host pairing; escaped parentheses stay literal', () => {
-  assert.equal(type('',0,'(').value,'()');
+test('parentheses are left to the host, including nested and escaped input', () => {
+  assert.equal(type('',0,'(').value,'(');
   assert.equal(type(')',0,'(').value,'()');
+  assert.equal(type('()',1,'(').value,'(()');
+  assert.equal(type('$x$',2,'(').value,'$x($');
   assert.equal(type('\\',1,'(').value,'\\(');
 });
 test('vertical bar selection and skip in math', () => {

@@ -25,8 +25,17 @@
 
 所有平台也可运行 `node scripts/bootstrap.mjs`。Windows 自动化运行可用 `bootstrap.cmd --no-pause` 跳过结束暂停。
 
+## 本地更新流程
+
+Logseq 统一加载本仓库根目录，入口为根目录下的 `dist/index.html`。`release/` 不用于本地运行或验证。
+
+1. 拉取更新或修改 `src/` 后，在根目录运行 `npm run check`，测试并重新构建 `dist/`。依赖有变化时，先运行自举脚本。
+2. 重启 Logseq，再验证功能。`/reload latex snippets` 只重载规则和设置，不会加载修改后的插件代码。
+3. 无需复制文件到 `release/`，也不要把 Logseq 的加载目录改为 `dist/` 或 `release/`。
+
 ## 使用
 
+- 在 `a`、`f` 等字符后输入 `(`，插件补成 `()`，光标留在括号内；Logseq 已支持的位置和选区包裹仍由 Logseq 处理。代码和转义输入不补全。
 - 在行内 `$…$`、文本 `$$…$$` 或 DB 原生 Math 公式块中，输入片段后按空格。
 - 例如 `bfa` → `\mathbf{a}`、`fr` → `\frac{}{}`、`bbR` → `\mathbb{R}`。
 - `bolda` → `\boldsymbol{a}`、`bold\alpha` → `\boldsymbol{\alpha}`，按空格展开后光标停在右花括号之后。
@@ -58,7 +67,7 @@
 
 ## 验证与限制
 
-- 开发检查：`npm run check`（30 项自动测试及构建）。编辑器测试使用模拟 API，不代替实机验证。
+- 开发检查：`npm run check`（自动测试及构建）。编辑器测试使用模拟 API，不代替实机验证。
 - 已在 Logseq DB 2.0.1 人工确认双美元符号换行；撤销、保存和重开仍待完整验证。
 - 自举脚本已在 macOS 和 Windows（Node.js 24）跑通，Linux 尚未实机验证。
 - 不声明网页版支持；旧版文件图谱未做完整回归。插件依赖宿主 DOM 和已弃用的浏览器编辑接口，Logseq 更新后可能需要适配。

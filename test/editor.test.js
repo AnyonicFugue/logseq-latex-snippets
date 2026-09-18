@@ -52,6 +52,18 @@ test('typing during a pending DB lookup does not overwrite newer text',async()=>
   const second=f.type('x');f.resolveBlock();await Promise.all([first,second]);
   assert.equal(f.element.value,'$fr x$');assert.equal(f.edits.length,0);
 });
+test('parenthesis input events never trigger asynchronous pairing',async()=>{
+  for (const native of [false,true]) {
+    for (const [value,cursor] of [['',0],['()',1],['(x)',2]]) {
+      const f=fixture({native,deferred:true});
+      f.element.value=value;f.element.setSelectionRange(cursor,cursor);
+      await f.type('(');
+      assert.equal(f.element.value,value.slice(0,cursor)+'('+value.slice(cursor));
+      assert.equal(f.element.selectionStart,cursor+1);
+      assert.deepEqual(f.edits,[]);assert.deepEqual(f.errors,[]);f.stop();
+    }
+  }
+});
 test('focus change, selection movement, composition and unload invalidate pending work',async()=>{
   for(const action of [f=>{f.document.activeElement=null;},f=>f.element.setSelectionRange(0,0),f=>f.listeners.get('compositionstart')(),f=>f.stop()]) {
     const f=fixture({deferred:true});const work=f.type();await tick();action(f);f.resolveBlock();await work;
@@ -105,4 +117,31 @@ test('keydown wraps selection and skips closing dollar without duplicating it',(
 test('dollar keydown leaves math/code blocks, IME and shortcuts to host',()=>{
   for(const options of [{native:true},{code:true}]) assert.equal(pressDollar(keyFixture(options)).defaultPrevented,undefined);
   for(const extra of [{isComposing:true},{keyCode:229},{ctrlKey:true},{metaKey:true}]) assert.equal(pressDollar(keyFixture(),extra).defaultPrevented,undefined);
+});
+test('parentheses pair after text synchronously and preserve outer closers',()=>{
+  for (const native of [false,true]) {
+    for (const [value,cursor,expected] of [['a',1,'a()'],['f(x)',3,'f(x())'],['$f$',2,'$f()$'],['中文',2,'中文()']]) {
+      const f=keyFixture({native,deferred:true});
+      f.element.value=value;f.element.setSelectionRange(cursor,cursor);
+      const event=pressDollar(f,{key:'('});
+      assert.equal(event.defaultPrevented,true);assert.equal(event.stopped,true);
+      assert.equal(f.element.value,expected);assert.equal(f.element.selectionStart,cursor+1);
+      assert.deepEqual(f.edits,['()']);assert.deepEqual(f.errors,[]);f.stop();
+    }
+  }
+});
+test('parentheses leave host pairing, selections, code, escapes and IME alone',()=>{
+  for (const value of ['', ' ', '\n', ']', '(', 'a ', 'a(', '\\', '`code', '```\ncode']) {
+    const f=keyFixture();f.element.value=value;f.element.setSelectionRange(value.length,value.length);
+    assert.equal(pressDollar(f,{key:'('}).defaultPrevented,undefined);
+    assert.deepEqual(f.edits,[]);
+  }
+  for (const extra of [{isComposing:true},{keyCode:229},{ctrlKey:true},{metaKey:true},{altKey:true},{defaultPrevented:true}]) {
+    const f=keyFixture();f.element.value='f';f.element.setSelectionRange(1,1);
+    pressDollar(f,{key:'(',...extra});assert.deepEqual(f.edits,[]);
+  }
+  const selected=keyFixture();selected.element.value='abc';selected.element.setSelectionRange(1,3);
+  assert.equal(pressDollar(selected,{key:'('}).defaultPrevented,undefined);
+  const code=keyFixture({code:true});code.element.value='f';code.element.setSelectionRange(1,1);
+  assert.equal(pressDollar(code,{key:'('}).defaultPrevented,undefined);
 });
