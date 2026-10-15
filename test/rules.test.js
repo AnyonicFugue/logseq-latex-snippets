@@ -49,10 +49,7 @@ test('dollar pairing, closing skip and selected text wrapping', () => {
   assert.deepEqual(type('hello world',0,'$',{},5),{value:'$hello$ world',cursor:7});
   assert.deepEqual(type(' x ',0,'$',{},3),{value:' $x$ ',cursor:5});
 });
-test('second dollar creates multiline display; native math never auto-pairs dollars', () => {
-  assert.deepEqual(type('$$',1,'$'),{value:'$$\n\n$$',cursor:3});
-  assert.deepEqual(type('a $$',3,'$'),{value:'a \n$$\n\n$$',cursor:6});
-  assert.deepEqual(type('$$',1,'$',{settings:{...DEFAULT_SETTINGS,newLineForDisplayMath:false}}),{value:'$$$$',cursor:2});
+test('native math never auto-pairs dollars', () => {
   assert.deepEqual(type('x',1,'$',{nativeMath:true}),{value:'x$',cursor:2});
 });
 test('parentheses are left to the host, including nested and escaped input', () => {
@@ -67,12 +64,23 @@ test('vertical bar selection and skip in math', () => {
   assert.equal(type('$abc$',1,'|',{settings},4).value,'$|abc|$');
   assert.deepEqual(type('$|x|$',3,'|',{settings}),{value:'$|x|$',cursor:4});
 });
-test('second dollar expands with no closer or host-supplied closers, preserving suffix',()=>{
-  for(const suffix of ['', '$', '$$']) {
-    assert.deepEqual(type('$'+suffix+' tail',1,'$'),{value:'$$\n\n$$ tail',cursor:3});
+test('second opening dollar is left to Logseq, including legacy settings and host closers',()=>{
+  for(const left of ['$', 'text $', 'text\n$']) {
+    for(const suffix of ['', '$', '$$']) {
+      const before = {value:left+suffix+' tail',start:left.length,end:left.length};
+      const value = left+'$'+suffix+' tail';
+      for(const newLineForDisplayMath of [true,false]) {
+        assert.equal(planEdit({value,cursor:left.length+1,char:'$',before,settings:{...DEFAULT_SETTINGS,newLineForDisplayMath}}),null);
+      }
+    }
   }
-  assert.deepEqual(type('text\n$',6,'$'),{value:'text\n$$\n\n$$',cursor:8});
-  assert.deepEqual(type('$',1,'$',{settings:{...DEFAULT_SETTINGS,newLineForDisplayMath:false}}),{value:'$$$$',cursor:2});
+});
+test('sf expands like rm and bf in inline and native math',()=>{
+  for(const font of ['sf','rm','bf']) {
+    assert.deepEqual(type('$'+font+'A$ tail',4,' '),{value:'$\\math'+font+'{A}$ tail',cursor:11});
+    assert.deepEqual(type(font+'A+x',3,' ',{nativeMath:true}),{value:'\\math'+font+'{A} +x',cursor:11});
+    assert.equal(type('$x'+font+'A$',5,' ').value,'$x'+font+'A $');
+  }
 });
 test('closing or escaped dollars and code never become a display-math opener',()=>{
   assert.equal(type('$x$',3,'$').value.includes('\n'),false);

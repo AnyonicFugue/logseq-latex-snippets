@@ -9,7 +9,6 @@ async function main() {
     { key: 'VerticalLineBracket', type: 'boolean', default: false, description: 'Wrap selected math text with vertical bars.' },
     { key: 'DeleteBlankAfterMatchInline', type: 'boolean', default: true, description: 'Remove the triggering space in inline math.' },
     { key: 'DeleteBlankAfterMatchDisplay', type: 'boolean', default: false, description: 'Remove the triggering space in display math.' },
-    { key: 'newLineForDisplayMath', type: 'boolean', default: true, description: 'Insert line breaks when creating dollar-delimited display math.' },
     { key: 'snippetsJson', type: 'string', inputAs: 'textarea', default: '', description: 'Custom grouped snippets JSON. Empty uses bundled snippets.json. Settings survive plugin upgrades.' },
   ]);
   let settings = { ...DEFAULT_SETTINGS, ...logseq.settings };

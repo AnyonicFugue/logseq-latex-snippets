@@ -1,7 +1,7 @@
 export const DEFAULT_SETTINGS = {
   wrapwithDollarBracket: true, caseInsensitive: true, VerticalLineBracket: false,
   DeleteBlankAfterMatchInline: true, DeleteBlankAfterMatchDisplay: false,
-  newLineForDisplayMath: true, snippetsJson: '',
+  snippetsJson: '',
 };
 
 export function compileRules(config, insensitive = true) {
@@ -75,16 +75,8 @@ export function planEdit({ value, cursor, char, before, nativeMath = false, rule
   const previousContext = mathContext(left, nativeMath);
   const escaped = /(?:^|[^\\])(?:\\\\)*\\$/.test(left);
   if (char === '$' && !nativeMath && !escaped && !previousContext.code) {
-    // The first dollar's asynchronous pairing may not have run yet. Recognize
-    // the opening pair itself, whether there are zero, one or two closers.
-    if (left.endsWith('$') && !selected && previousContext.mode === 'inline' && mathContext(left.slice(0, -1)).mode === null) {
-      const start = cursor - 2;
-      const closingCount = value.slice(cursor).match(/^\${0,2}/)[0].length;
-      const end = cursor + closingCount;
-      if (!settings.newLineForDisplayMath) return edit(start, end, '$$$$', start + 2);
-      const lead = start > 0 && value[start - 1] !== '\n' ? '\n' : '';
-      return edit(start, end, `${lead}$$\n\n$$`, start + lead.length + 3);
-    }
+    // Let Logseq handle the second opening dollar and native Math conversion.
+    if (left.endsWith('$') && !selected && previousContext.mode === 'inline' && mathContext(left.slice(0, -1)).mode === null) return null;
     if (next === '$' && previousContext.mode) return edit(cursor - 1, cursor, '', cursor);
     if (previousContext.mode) return null;
     if (selected && settings.wrapwithDollarBracket) {

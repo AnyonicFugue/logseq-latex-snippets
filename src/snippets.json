@@ -5,7 +5,7 @@
       "replacement": "\\boldsymbol{$1}@"
     },
     {
-      "match": "(?<![a-zA-Z])(cal|scr|frak|bb|bf|rm)(.+)",
+      "match": "(?<![a-zA-Z])(cal|scr|frak|bb|bf|rm|sf)(.+)",
       "replacement": "\\math$1{$2}@"
     },
 	  {
