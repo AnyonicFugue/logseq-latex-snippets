@@ -4,17 +4,26 @@ import { attachEditor, blockUUID, isNativeMath } from '../src/editor.js';
 import { compileRules, DEFAULT_SETTINGS } from '../src/rules.js';
 const uuid='550e8400-e29b-41d4-a716-446655440000';
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
-function fixture({deferred=false, native=false, active=uuid, supports=true, code=false}={}) {
-  const listeners=new Map(), errors=[], edits=[];
+function fixture({deferred=false, native=false, active=uuid, supports=true, code=false, observe=true}={}) {
+  const listeners=new Map(), errors=[], edits=[], timers=new Map(), observers=new Set();
+  let nextTimer=0, now=0;
   let resolveBlock;
   const block={uuid, ...(native?{':logseq.property.node/display-type':':math'}:{})};
   if(code) block[':logseq.property.node/display-type']=':code';
   const pending=deferred?new Promise(resolve=>{resolveBlock=()=>resolve(block);}):Promise.resolve(block);
   const element={id:`edit-block-${uuid}`,nodeName:'TEXTAREA',value:native?'fr':'$fr$',selectionStart:native?2:3,selectionEnd:native?2:3,isConnected:true,
     closest:()=>true,setSelectionRange(start,end){this.selectionStart=start;this.selectionEnd=end;}};
-  const document={activeElement:element,addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name),
+  class MutationObserver {
+    constructor(callback){this.callback=callback;}
+    observe(target,options){this.target=target;this.options=options;observers.add(this);}
+    disconnect(){observers.delete(this);}
+  }
+  const document={activeElement:element,documentElement:{},addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name),
+    defaultView:{setTimeout(fn,delay){const id=++nextTimer;timers.set(id,{fn,due:now+delay});return id;},clearTimeout(id){timers.delete(id);},
+      ...(observe?{MutationObserver}:{})},
     execCommand(command,ui,text){
       if(!supports) return false;
+      const element=document.activeElement;
       edits.push(text);
       element.value=element.value.slice(0,element.selectionStart)+text+element.value.slice(element.selectionEnd);
       element.selectionStart+=text.length;element.selectionEnd=element.selectionStart;
@@ -30,7 +39,12 @@ function fixture({deferred=false, native=false, active=uuid, supports=true, code
     element.setSelectionRange(start+data.length,start+data.length);
     return listeners.get('input')?.(event);
   };
-  return {element,document,listeners,errors,edits,type,stop,resolveBlock};
+  const next=()=>[...timers.entries()].sort((a,b)=>a[1].due-b[1].due)[0];
+  const runTimer=()=>{const [id,task]=next()??[];if(task){timers.delete(id);now=task.due;task.fn();}};
+  const advance=ms=>{const end=now+ms;while(timers.size&&next()[1].due<=end) runTimer();now=end;};
+  const flushTimers=()=>{for(let i=0;timers.size&&i<100;i++) runTimer();assert.equal(timers.size,0);};
+  const mutate=()=>{for(const observer of [...observers]) observer.callback([],observer);};
+  return {element,document,listeners,errors,edits,type,stop,resolveBlock,timers,observers,runTimer,flushTimers,advance,mutate};
 }
 test('both editor id formats, without accepting malformed ids',()=>{
   assert.equal(blockUUID({id:`edit-block-${uuid}`}),uuid);
@@ -96,7 +110,9 @@ function pressDollar(f, extra={}) {
 }
 function keyFixture(options={}) {
   const f=fixture(options);
-  f.element.closest=selector=>selector==='.block-editor'?{}:{getAttribute:()=>options.native?'math':options.code?'code':null};
+  let nodeType=options.native?'math':options.code?'code':null;
+  f.setNodeType=type=>{nodeType=type;};
+  f.element.closest=selector=>selector==='.block-editor'?{}:{getAttribute:()=>nodeType};
   f.element.value='';f.element.setSelectionRange(0,0);
   return f;
 }
@@ -109,6 +125,127 @@ test('first dollar pairs synchronously and second opening dollar reaches the hos
   assert.equal(second.defaultPrevented,undefined);assert.equal(second.stopped,undefined);
   assert.equal(f.element.value,'$$');assert.equal(f.element.selectionStart,1);
   assert.equal(f.edits.length,1);assert.deepEqual(f.errors,[]);
+  f.stop();
+});
+
+function beginMathConversion(f) {
+  pressDollar(f);
+  const second=pressDollar(f);
+  assert.equal(second.defaultPrevented,undefined);
+  assert.equal(second.stopped,undefined);
+}
+test('DOM conversion is cleaned immediately between polling ticks, even with a pending SDK lookup',()=>{
+  const f=keyFixture({deferred:true});beginMathConversion(f);
+  f.element.value='$$$$';f.element.setSelectionRange(2,2);
+  f.advance(180);assert.equal(f.element.value,'$$$$');
+  const [observer]=f.observers;
+  assert.equal(observer.target,f.document.documentElement);
+  assert.deepEqual(observer.options.attributeFilter,['data-node-type']);
+  f.setNodeType('math');f.mutate(); // no timer or SDK response is needed
+  assert.equal(f.element.value,'');assert.equal(f.element.selectionStart,0);
+  assert.equal(f.timers.size,0);assert.equal(f.observers.size,0);
+  assert.deepEqual(f.errors,[]);f.stop();
+});
+test('DOM observer follows a remount and waits for the matching Math editor',()=>{
+  const f=keyFixture();beginMathConversion(f);
+  f.element.value='$$$$';f.element.setSelectionRange(2,2);
+  f.mutate();assert.equal(f.element.value,'$$$$'); // unrelated DOM change
+  f.element.isConnected=false;f.document.activeElement=null;f.setNodeType('math');f.mutate();
+  const replacement={...f.element,isConnected:true};f.document.activeElement=replacement;
+  f.mutate();assert.equal(replacement.value,'');assert.equal(f.element.value,'$$$$');
+  assert.equal(f.observers.size,0);assert.equal(f.timers.size,0);f.stop();
+});
+test('value-only updates and hosts without observers use a fallback within 16ms',()=>{
+  for(const observe of [true,false]) {
+    const f=keyFixture({observe});beginMathConversion(f);f.advance(180);
+    f.element.value='$$$$';f.element.setSelectionRange(2,2);f.setNodeType('math');
+    f.advance(16);assert.equal(f.element.value,'');assert.equal(f.observers.size,0);
+    assert.equal(f.timers.size,0);assert.deepEqual(f.errors,[]);f.stop();
+  }
+});
+test('expired or canceled observers disconnect and cannot resume stale cleanup',()=>{
+  for(const cancel of [f=>f.advance(800),f=>f.listeners.get('compositionstart')(),f=>f.stop()]) {
+    const f=keyFixture();beginMathConversion(f);const [observer]=f.observers;
+    cancel(f);assert.equal(f.observers.size,0);assert.equal(f.timers.size,0);
+    f.element.value='$$$$';f.element.setSelectionRange(2,2);f.setNodeType('math');
+    observer.callback([]);assert.equal(f.element.value,'$$$$');f.stop();
+  }
+});
+test('host conversion without input events removes only the four leftover dollars',()=>{
+  const f=keyFixture({deferred:true});
+  beginMathConversion(f);
+  f.element.value='$$$$';f.element.setSelectionRange(2,2);
+  f.runTimer();assert.equal(f.element.value,'$$$$'); // not native Math yet
+  f.setNodeType('math');f.flushTimers();
+  assert.equal(f.element.value,'');assert.equal(f.element.selectionStart,0);
+  assert.deepEqual(f.edits,['$$','']);assert.deepEqual(f.errors,[]);f.stop();
+});
+test('host multi-character input events do not compete with conversion cleanup',async()=>{
+  const f=keyFixture();beginMathConversion(f);
+  await f.type('$$'); // host pairing may emit one event with both added dollars
+  assert.equal(f.element.value,'$$$$');
+  f.setNodeType('math');f.flushTimers();
+  assert.equal(f.element.value,'');assert.equal(f.element.selectionStart,0);
+  assert.deepEqual(f.edits,['$$','']);assert.deepEqual(f.errors,[]);f.stop();
+});
+test('math cleanup follows a replacement textarea with the same block UUID',()=>{
+  const f=keyFixture();beginMathConversion(f);
+  f.element.isConnected=false;
+  const replacement={...f.element,isConnected:true,value:'$$$$',selectionStart:2,selectionEnd:2};
+  f.listeners.get('focusout')();
+  f.document.activeElement=replacement;f.setNodeType('math');f.flushTimers();
+  assert.equal(replacement.value,'');assert.equal(replacement.selectionStart,0);
+  assert.equal(f.element.value,'$$');assert.deepEqual(f.errors,[]);f.stop();
+});
+test('math conversion cleanup preserves surrounding text and restores the insertion point',()=>{
+  const f=keyFixture();f.element.value='prefix  suffix';f.element.setSelectionRange(7,7);
+  beginMathConversion(f);
+  f.element.value='prefix $$$$ suffix';f.element.setSelectionRange(9,9);
+  f.setNodeType('math');f.flushTimers();
+  assert.equal(f.element.value,'prefix  suffix');assert.equal(f.element.selectionStart,7);f.stop();
+});
+test('typing immediately after conversion cleans before taking the next input snapshot',async()=>{
+  const f=keyFixture();beginMathConversion(f);
+  f.element.value='$$$$';f.element.setSelectionRange(2,2);f.setNodeType('math');
+  await f.type('x');f.flushTimers();
+  assert.equal(f.element.value,'x');assert.equal(f.element.selectionStart,1);f.stop();
+});
+test('math cleanup expires and leaves ordinary dollars, existing math, changed content and other editors alone',()=>{
+  for(const scenario of ['text','code','already-clean','changed','other-block','disconnected','selected','blurred','expired']) {
+    const f=keyFixture();beginMathConversion(f);
+    f.element.value='$$$$';f.element.setSelectionRange(2,2);f.setNodeType('math');
+    if(scenario==='text'||scenario==='expired') f.setNodeType(null);
+    if(scenario==='code') f.setNodeType('code');
+    if(scenario==='already-clean') {f.element.value='';f.element.setSelectionRange(0,0);}
+    if(scenario==='changed') {f.element.value='$$x$$';f.element.setSelectionRange(3,3);}
+    if(scenario==='other-block') f.element.id='edit-block-650e8400-e29b-41d4-a716-446655440000';
+    if(scenario==='disconnected') f.element.isConnected=false;
+    if(scenario==='selected') f.element.setSelectionRange(1,3);
+    if(scenario==='blurred') f.document.activeElement=null;
+    const value=f.element.value;f.flushTimers();
+    if(scenario==='expired') {f.setNodeType('math');f.flushTimers();}
+    assert.equal(f.element.value,value,scenario);assert.deepEqual(f.edits,['$$'],scenario);f.stop();
+  }
+  const native=keyFixture({native:true});native.element.value='$$$$';native.element.setSelectionRange(2,2);
+  pressDollar(native);native.flushTimers();assert.deepEqual(native.edits,[]);native.stop();
+});
+test('undo, composition, paste and unload cancel pending cleanup',()=>{
+  for(const cancel of [
+    f=>pressDollar(f,{key:'z',ctrlKey:true}),
+    f=>f.listeners.get('compositionstart')(),
+    f=>f.listeners.get('beforeinput')({target:f.element,inputType:'insertFromPaste',data:'x'}),
+    f=>f.stop(),
+  ]) {
+    const f=keyFixture();beginMathConversion(f);
+    f.element.value='$$$$';f.element.setSelectionRange(2,2);f.setNodeType('math');
+    cancel(f);f.flushTimers();assert.equal(f.element.value,'$$$$');assert.deepEqual(f.edits,['$$']);f.stop();
+  }
+});
+test('unsupported cleanup reports once and never retries the edit',()=>{
+  const f=keyFixture({supports:false});
+  f.element.value='$$';f.element.setSelectionRange(1,1);pressDollar(f);
+  f.element.value='$$$$';f.element.setSelectionRange(2,2);f.setNodeType('math');f.flushTimers();
+  assert.equal(f.element.value,'$$$$');assert.equal(f.element.selectionStart,2);assert.equal(f.errors.length,1);f.stop();
 });
 test('keydown wraps selection and skips closing dollar without duplicating it',()=>{
   const f=keyFixture();f.element.value='abc tail';f.element.setSelectionRange(0,3);pressDollar(f);

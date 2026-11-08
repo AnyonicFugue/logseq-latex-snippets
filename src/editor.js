@@ -1,4 +1,4 @@
-import { mathContext, planEdit } from './rules.js';
+import { mathContext, planEdit, planMathCleanup } from './rules.js';
 
 export function blockUUID(element) {
   const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}';
@@ -18,6 +18,15 @@ function isEditor(element) {
 export function attachEditor(document, logseq, getConfig, report) {
   const snapshots = new WeakMap();
   let applying = false, disposed = false, generation = 0;
+  const timers = document.defaultView ?? globalThis;
+  let pendingMath = null;
+  const cancelMathCleanup = () => {
+    if (pendingMath) {
+      timers.clearTimeout(pendingMath.timer);
+      pendingMath.observer?.disconnect();
+    }
+    pendingMath = null;
+  };
   const apply = (element, change, cursor) => {
     applying = true;
     try {
@@ -32,7 +41,56 @@ export function attachEditor(document, logseq, getConfig, report) {
       throw error;
     } finally { applying = false; }
   };
+  const cleanMath = () => {
+    const element = document.activeElement;
+    if (!pendingMath || disposed || !isEditor(element) || !element.isConnected ||
+        blockUUID(element) !== pendingMath.uuid || element.selectionStart !== element.selectionEnd ||
+        element.closest('.block-content-or-editor-wrap')?.getAttribute('data-node-type') !== 'math') return;
+    const change = planMathCleanup({ value: element.value, cursor: element.selectionStart, before: pendingMath.before });
+    if (!change) return;
+    cancelMathCleanup();
+    generation++;
+    snapshots.delete(element);
+    try { apply(element, change, element.selectionStart); }
+    catch (error) { report(error); }
+  };
+  const watchMathConversion = (element, before) => {
+    cancelMathCleanup();
+    const pending = { uuid: blockUUID(element), before, timer: null, observer: null };
+    pendingMath = pending;
+    // The host can convert on keydown without beforeinput/input, and may replace
+    // the textarea. React as soon as its Math marker is rendered, rather than
+    // adding an increasingly long polling delay after the conversion is ready.
+    const root = document.documentElement;
+    if (root && typeof timers.MutationObserver === 'function') {
+      pending.observer = new timers.MutationObserver(() => {
+        if (pendingMath === pending) cleanMath();
+      });
+      pending.observer.observe(root, {
+        subtree: true, childList: true, attributes: true, attributeFilter: ['data-node-type'],
+      });
+    }
+    // Textarea value/focus changes need not mutate DOM attributes. Keep a short,
+    // bounded fallback for those cases and hosts without MutationObserver.
+    let remaining = 50;
+    const check = () => {
+      if (pendingMath !== pending) return;
+      cleanMath();
+      if (pendingMath !== pending) return;
+      if (!remaining--) cancelMathCleanup();
+      else pending.timer = timers.setTimeout(check, 16);
+    };
+    pending.timer = timers.setTimeout(check, 0);
+  };
   const keydown = (event) => {
+    if (applying || disposed) return;
+    // Finish a confirmed conversion before the next keystroke, then discard
+    // stale work (especially before undo, navigation or composition).
+    if (!['Shift', 'Control', 'Meta', 'Alt'].includes(event.key)) {
+      if (document.activeElement === event.target && !event.defaultPrevented &&
+          !event.isComposing && event.keyCode !== 229 && !event.ctrlKey && !event.metaKey) cleanMath();
+      cancelMathCleanup();
+    }
     if (applying || disposed || event.defaultPrevented || !['$', '('].includes(event.key) || event.isComposing ||
         event.keyCode === 229 || event.ctrlKey || event.metaKey || !isEditor(event.target)) return;
     const element = event.target;
@@ -60,6 +118,12 @@ export function attachEditor(document, logseq, getConfig, report) {
       return;
     }
     if (type === 'math') return;
+    const left = before.value.slice(0, before.start);
+    if (before.start === before.end && left.endsWith('$') &&
+        mathContext(left).mode === 'inline' && mathContext(left.slice(0, -1)).mode === null) {
+      watchMathConversion(element, before);
+      return;
+    }
     const value = before.value.slice(0, before.start) + '$' + before.value.slice(before.end);
     const change = planEdit({ value, cursor: before.start + 1, char: '$', before, ...getConfig() });
     if (!change) return;
@@ -80,6 +144,8 @@ export function attachEditor(document, logseq, getConfig, report) {
   };
   const beforeInput = (event) => {
     if (applying || !isEditor(event.target)) return;
+    if (!event.isComposing && event.inputType === 'insertText') cleanMath();
+    if (event.isComposing || event.inputType !== 'insertText' || !/^\$+$/.test(event.data ?? '')) cancelMathCleanup();
     generation++;
     snapshots.delete(event.target);
     if (event.isComposing || event.inputType !== 'insertText' || event.data?.length !== 1) return;
@@ -112,18 +178,22 @@ export function attachEditor(document, logseq, getConfig, report) {
       apply(element, change, cursor);
     } catch (error) { if (!disposed) report(error); }
   };
-  const invalidate = () => { generation++; };
+  const invalidate = () => { generation++; cancelMathCleanup(); };
+  // A host remount may briefly blur the old textarea; the cleanup checks the
+  // active block UUID on every attempt instead of retaining the old DOM node.
+  const blur = () => { generation++; };
   document.addEventListener('keydown', keydown, true);
   document.addEventListener('beforeinput', beforeInput, true);
   document.addEventListener('input', input, true);
-  document.addEventListener('focusout', invalidate, true);
+  document.addEventListener('focusout', blur, true);
   document.addEventListener('compositionstart', invalidate, true);
   return () => {
     disposed = true; generation++;
+    cancelMathCleanup();
     document.removeEventListener('keydown', keydown, true);
     document.removeEventListener('beforeinput', beforeInput, true);
     document.removeEventListener('input', input, true);
-    document.removeEventListener('focusout', invalidate, true);
+    document.removeEventListener('focusout', blur, true);
     document.removeEventListener('compositionstart', invalidate, true);
   };
 }

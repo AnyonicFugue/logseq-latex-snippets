@@ -50,6 +50,21 @@ function edit(start, end, text, cursor = start + text.length) {
   return { start, end, text, cursor };
 }
 
+// Only the four dollars left at a just-converted opener may be removed. The
+// caller must first confirm that the active block now has native Math type.
+export function planMathCleanup({ value, cursor, before }) {
+  const start = before.start - 1;
+  const left = before.value.slice(0, before.start);
+  if (before.start !== before.end || !left.endsWith('$') ||
+      mathContext(left).mode !== 'inline' || mathContext(left.slice(0, -1)).mode !== null) return null;
+  let end = before.end;
+  while (before.value[end] === '$') end++;
+  if (end - before.end > 2) return null;
+  const prefix = before.value.slice(0, start), suffix = before.value.slice(end);
+  if (value !== prefix + '$$$$' + suffix || cursor < start || cursor > start + 4) return null;
+  return edit(start, start + 4, '', start);
+}
+
 // Plan a local edit after native insertion, using the matching beforeinput snapshot.
 export function planEdit({ value, cursor, char, before, nativeMath = false, rules = [], settings = DEFAULT_SETTINGS }) {
   if (!before || char.length !== 1) return null;

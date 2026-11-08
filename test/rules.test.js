@@ -1,8 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { compileRules, mathContext, planEdit, DEFAULT_SETTINGS } from '../src/rules.js';
+import { compileRules, mathContext, planEdit, planMathCleanup, DEFAULT_SETTINGS } from '../src/rules.js';
 const rules = compileRules(JSON.parse(readFileSync(new URL('../src/snippets.json', import.meta.url))));
+test('native cleanup requires the exact newly generated four-dollar scaffold',()=>{
+  for(const value of ['$', '$$', '$$$']) {
+    assert.deepEqual(planMathCleanup({value:'$$$$',cursor:2,before:{value,start:1,end:1}}),{start:0,end:4,text:'',cursor:0});
+  }
+  for(const value of ['$$','$$$','$$$$$','$$x$$','$$$$ tail']) {
+    assert.equal(planMathCleanup({value,cursor:2,before:{value:'$$',start:1,end:1}}),null);
+  }
+  for(const before of [{value:'$$$$',start:1,end:1},{value:'\\$',start:2,end:2},{value:'`$',start:2,end:2},{value:'abc',start:0,end:3}]) {
+    assert.equal(planMathCleanup({value:'$$$$',cursor:2,before}),null);
+  }
+});
 function type(value, start, char, options = {}, end = start) {
   const before = { value, start, end };
   value = value.slice(0, start) + char + value.slice(end);
